@@ -667,78 +667,62 @@
         function criarRegistrosDia() {
             const dataAtual = getDataAtual();
 
-                const frentesFrotas = obterRosterAtual();
-                const payload = {
-                    acao: 'criarRegistrosDia',
-                    data: dataAtual,
-                    frentesFrotas: frentesFrotas
-                };
+            const frentesFrotas = obterRosterAtual();
+            const payload = {
+                acao: 'criarRegistrosDia',
+                data: dataAtual,
+                frentesFrotas: frentesFrotas
+            };
 
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-                document.body.appendChild(iframe);
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
+            document.body.appendChild(iframe);
 
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-
-                    lerGoogleSheets();
-                }, 2000);
-
-            } catch (error) {
-                console.error('Erro ao criar registros:', error);
-                mostrarToast('⚠️ Erro ao criar registros do dia', 'error');
-                if (!carregarDadosSalvos()) carregarDadosExemplo();
-            }
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                mostrarToast(`✅ Registros criados para ${dataAtual}`, 'success');
+                lerGoogleSheets();
+            }, 2000);
         }
 
         // ============================================================
         //  FUNÇÃO PARA SALVAR (IFRAME)
         // ============================================================
         function salvarGoogleSheets() {
+            const promises = registros.map((r, index) => {
+                return new Promise((resolve) => {
+                    const payload = {
+                        acao: 'atualizarStatus',
+                        frota: r.frota,
+                        data: r.data,
+                        status: r.status,
+                        turno: r.turno || '',
+                        frente: r.frente
+                    };
 
-                // Salvar um registro por vez
-                const promises = registros.map((r, index) => {
-                    return new Promise((resolve) => {
-                        const payload = {
-                            acao: 'atualizarStatus',
-                            frota: r.frota,
-                            data: r.data,
-                            status: r.status,
-                            turno: r.turno || '',
-                            frente: r.frente
-                        };
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
+                    document.body.appendChild(iframe);
 
-                        const iframe = document.createElement('iframe');
-                        iframe.style.display = 'none';
-                        iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-                        document.body.appendChild(iframe);
-
-                        setTimeout(() => {
-                            document.body.removeChild(iframe);
-                            resolve({ sucesso: true });
-                        }, 1500);
-                    });
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        resolve({ sucesso: true });
+                    }, 1500);
                 });
+            });
 
-                Promise.all(promises)
-                    .then(() => {
-                        mostrarToast('✅ Dados salvos na planilha!', 'success');
-    
-                        lerGoogleSheets();
-                    })
-                    .catch(error => {
-                        console.error('Erro ao salvar:', error);
-
-                        exportarCSV();
-                        mostrarToast('⚠️ Erro. CSV baixado.', 'error');
-                    });
-
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                exportarCSV();
-                mostrarToast('⚠️ Erro. CSV baixado.', 'error');
-            }
+            Promise.all(promises)
+                .then(() => {
+                    mostrarToast('✅ Dados salvos na planilha!', 'success');
+                    lerGoogleSheets();
+                })
+                .catch(error => {
+                    console.error('Erro ao salvar:', error);
+                    exportarCSV();
+                    mostrarToast('⚠️ Erro. CSV baixado.', 'error');
+                });
         }
 
         // ============================================================
