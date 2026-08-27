@@ -373,6 +373,7 @@
                 <button class="btn btn-refresh" id="refreshBtn" title="Salvar na Planilha">💾 <span>Salvar</span></button>
                 <button class="btn btn-export" id="exportBtn" title="Exportar CSV">📤 <span>Exportar</span></button>
                 <button class="btn btn-clear" id="clearBtn" title="Limpar Dados Locais">🗑️ <span>Limpar</span></button>
+                <button class="btn btn-filter" id="normalizeBtn" title="Normalizar Planilha">🧹 <span>Normalizar</span></button>
             </div>
         </header>
 
@@ -1094,6 +1095,23 @@
             mostrarToast('🗑️ Cache local limpo', 'info');
         }
 
+        function normalizarPlanilha() {
+            const statusText = document.getElementById('statusText');
+            statusText.innerHTML = '⏳ <span class="loading">Normalizando planilha...</span>';
+
+            const payload = { acao: 'normalizarPlanilha' };
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
+            document.body.appendChild(iframe);
+
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                statusText.innerHTML = `✅ <span class="ok">Normalização concluída. Recarregando...</span>`;
+                setTimeout(() => lerGoogleSheets(), 1500);
+            }, 3000);
+        }
+
         function exportarCSV() {
             if (registros.length === 0) { mostrarToast('Sem dados para exportar', 'error'); return; }
 
@@ -1165,6 +1183,7 @@
             document.getElementById('btnNovoRegistro').addEventListener('click', novaColhedora);
             document.getElementById('exportBtn').addEventListener('click', exportarCSV);
             document.getElementById('clearBtn').addEventListener('click', limparTodos);
+            document.getElementById('normalizeBtn').addEventListener('click', normalizarPlanilha);
 
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const dataFiltro = document.getElementById('filterData').value;
