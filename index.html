@@ -59,27 +59,6 @@
         .btn-filter { background: #4299e1; color: white; }
         .btn-filter:hover { background: #3182ce; }
 
-        .status-bar {
-            background: white;
-            padding: 8px 16px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            font-size: 13px;
-        }
-        .status-text { color: #2d3748; flex: 1; min-width: 120px; }
-        .status-text .ok { color: #38a169; font-weight: 600; }
-        .status-text .erro { color: #e53e3e; font-weight: 600; }
-        .status-text .loading { color: #2b6cb0; font-weight: 600; }
-        .status-text .info { color: #3182ce; font-weight: 600; }
-        .status-link { font-size: 12px; color: #2b6cb0; text-decoration: none; white-space: nowrap; font-weight: 500; }
-        .status-link:hover { text-decoration: underline; }
-
         .dashboard { display: grid; gap: 8px; margin-bottom: 12px; }
         .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
         .dashboard.desktop { grid-template-columns: repeat(6, 1fr); }
@@ -223,8 +202,8 @@
         .modal label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 13px; color: #2d3748; }
         .modal select, .modal input { width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; -webkit-appearance: none; appearance: none; }
         .modal select:focus, .modal input:focus { border-color: #2b6cb0; outline: none; }
-        .btn-oficina { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px; padding: 12px 14px; border: 2px solid #e53e3e; border-radius: 10px; background: #fff5f5; color: #c53030; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
-        .btn-oficina:hover { background: #fed7d7; }
+        .btn-oficina { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px; padding: 12px 14px; border: 2px solid #38a169; border-radius: 10px; background: #f0fff4; color: #276749; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
+        .btn-oficina:hover { background: #c6f6d5; }
         .btn-oficina.ativo { background: #e53e3e; color: white; border-color: #e53e3e; }
         .btn-oficina .icone { font-size: 18px; }
         .btn-oficina .status-badge { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 12px; background: rgba(255,255,255,0.25); }
@@ -310,8 +289,6 @@
             .turno-badge { font-size: 9px; padding: 2px 8px; }
             .btn-editar-frota { font-size: 12px; }
             .fab { display: flex; width: 48px; height: 48px; font-size: 24px; bottom: 16px; right: 16px; }
-            .status-bar { font-size: 11px; padding: 6px 12px; }
-            .status-link { font-size: 10px; }
             .toast { font-size: 12px; padding: 10px 16px; bottom: 70px; }
             .modal { padding: 18px 16px; }
             .modal h3 { font-size: 16px; }
@@ -349,8 +326,6 @@
             .turno-badge { font-size: 12px; padding: 4px 14px; }
             .btn-editar-frota { font-size: 14px; }
             .fab { display: none; }
-            .status-bar { font-size: 14px; padding: 10px 20px; }
-            .status-link { font-size: 13px; }
             .toast { font-size: 14px; padding: 14px 28px; bottom: 40px; }
             .modal { padding: 30px 28px; max-width: 460px; }
         }
@@ -375,19 +350,10 @@
                 <span class="header-shift" id="headerShift">Turno --</span>
             </div>
             <div class="header-actions">
-                <button class="btn btn-load" id="loadGoogleBtn" title="Ler Planilha">📋 <span>Ler</span></button>
-                <button class="btn btn-refresh" id="refreshBtn" title="Salvar na Planilha">💾 <span>Salvar</span></button>
-                <button class="btn btn-export" id="exportBtn" title="Exportar CSV">📤 <span>Exportar</span></button>
-                <button class="btn btn-clear" id="clearBtn" title="Limpar Dados Locais">🗑️ <span>Limpar</span></button>
-                <button class="btn btn-filter" id="normalizeBtn" title="Normalizar Planilha">🧹 <span>Normalizar</span></button>
+                <button class="btn btn-load" id="btnNovoRegistro" title="Nova Colhedora">➕ <span>Nova</span></button>
                 <button class="btn btn-history" id="historyBtn" title="Histórico">📊 <span>Histórico</span></button>
             </div>
         </header>
-
-        <div class="status-bar">
-            <span class="status-text" id="statusText">🔄 Inicializando...</span>
-            <a href="https://docs.google.com/spreadsheets/d/16neBQx7o74lyVqqbZxfz9twHJnzj-slDETEIFQPUqtI/edit?usp=sharing" target="_blank" class="status-link">📝 Abrir Planilha</a>
-        </div>
 
         <div class="dashboard" id="dashboard">
             <div class="card total">
@@ -636,10 +602,8 @@
         // ============================================================
         function lerGoogleSheets() {
             const tbody = document.getElementById('tableBody');
-            const statusText = document.getElementById('statusText');
 
             tbody.innerHTML = `<tr><td colspan="5" class="loading-msg pulse">⏳ Lendo planilha...</td></tr>`;
-            statusText.innerHTML = '⏳ <span class="loading">Conectando...</span>';
 
             const callbackName = 'jsonpCallback_' + Date.now();
             window[callbackName] = function(data) {
@@ -647,7 +611,7 @@
                 document.body.removeChild(script);
 
                 if (data.erro) {
-                    statusText.innerHTML = `❌ <span class="erro">Erro: ${data.erro}</span>`;
+                    mostrarToast(`❌ ${data.erro}`, 'error');
                     if (!carregarDadosSalvos()) carregarDadosExemplo();
                     return;
                 }
@@ -656,7 +620,7 @@
                     const dadosValidos = filtrarRegistrosValidos(data.dados);
 
                     if (dadosValidos.length === 0) {
-                        statusText.innerHTML = `⚠️ <span class="erro">Nenhum registro válido encontrado</span>`;
+                        mostrarToast('⚠️ Nenhum registro válido encontrado', 'error');
                         if (!carregarDadosSalvos()) carregarDadosExemplo();
                         return;
                     }
@@ -676,15 +640,12 @@
                     
                     const temHoje = registrosOriginais.some(r => r.data === getDataAtual());
                     if (!temHoje) {
-                        statusText.innerHTML = `ℹ️ <span class="info">Criando registros de hoje...</span>`;
                         criarRegistrosDia();
                         return;
                     }
                     
                     renderizarTudo();
-                    statusText.innerHTML = `✅ <span class="ok">${registrosOriginais.length} registros na planilha</span>`;
                 } else {
-                    statusText.innerHTML = `ℹ️ <span class="info">Planilha vazia — criando registros...</span>`;
                     criarRegistrosDia();
                 }
             };
@@ -694,9 +655,8 @@
             script.onerror = function() {
                 delete window[callbackName];
                 document.body.removeChild(script);
-                statusText.innerHTML = `❌ <span class="erro">Erro de conexão com a planilha</span>`;
-                if (!carregarDadosSalvos()) carregarDadosExemplo();
                 mostrarToast('⚠️ Erro de conexão — usando dados locais', 'error');
+                if (!carregarDadosSalvos()) carregarDadosExemplo();
             };
             document.body.appendChild(script);
         }
@@ -706,9 +666,7 @@
         // ============================================================
         function criarRegistrosDia() {
             const dataAtual = getDataAtual();
-            const statusText = document.getElementById('statusText');
 
-            try {
                 const frentesFrotas = obterRosterAtual();
                 const payload = {
                     acao: 'criarRegistrosDia',
@@ -723,7 +681,7 @@
 
                 setTimeout(() => {
                     document.body.removeChild(iframe);
-                    statusText.innerHTML = `✅ <span class="ok">Registros criados para ${dataAtual}</span>`;
+
                     lerGoogleSheets();
                 }, 2000);
 
@@ -738,10 +696,7 @@
         //  FUNÇÃO PARA SALVAR (IFRAME)
         // ============================================================
         function salvarGoogleSheets() {
-            const statusText = document.getElementById('statusText');
-            statusText.innerHTML = '⏳ <span class="loading">Salvando...</span>';
 
-            try {
                 // Salvar um registro por vez
                 const promises = registros.map((r, index) => {
                     return new Promise((resolve) => {
@@ -769,19 +724,18 @@
                 Promise.all(promises)
                     .then(() => {
                         mostrarToast('✅ Dados salvos na planilha!', 'success');
-                        statusText.innerHTML = `✅ <span class="ok">Salvo com sucesso!</span>`;
+    
                         lerGoogleSheets();
                     })
                     .catch(error => {
                         console.error('Erro ao salvar:', error);
-                        statusText.innerHTML = `❌ <span class="erro">Erro: ${error.message}</span>`;
+
                         exportarCSV();
                         mostrarToast('⚠️ Erro. CSV baixado.', 'error');
                     });
 
             } catch (error) {
                 console.error('Erro ao salvar:', error);
-                statusText.innerHTML = `❌ <span class="erro">Erro: ${error.message}</span>`;
                 exportarCSV();
                 mostrarToast('⚠️ Erro. CSV baixado.', 'error');
             }
@@ -805,7 +759,7 @@
             salvarLocal();
             aplicarFiltroDataAtual();
             renderizarTudo();
-            document.getElementById('statusText').innerHTML = `📋 <span class="info">${registros.length} registros de exemplo</span>`;
+
         }
 
         // ============================================================
@@ -826,8 +780,7 @@
                         registrosOriginais = parsed.map(r => ({ oficina: false, turno: null, ...r }));
                         aplicarFiltroDataAtual();
                         renderizarTudo();
-                        document.getElementById('statusText').innerHTML =
-                            `📂 <span class="info">${registrosOriginais.length} registros locais (cache)</span>`;
+
                         return true;
                     }
                 } catch (e) {}
@@ -1165,10 +1118,7 @@
         }
 
         function normalizarPlanilha() {
-            const statusText = document.getElementById('statusText');
-            statusText.innerHTML = '⏳ <span class="loading">Normalizando planilha...</span>';
 
-            const payload = { acao: 'normalizarPlanilha' };
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
@@ -1176,7 +1126,7 @@
 
             setTimeout(() => {
                 document.body.removeChild(iframe);
-                statusText.innerHTML = `✅ <span class="ok">Normalização concluída. Recarregando...</span>`;
+
                 setTimeout(() => lerGoogleSheets(), 1500);
             }, 3000);
         }
@@ -1322,16 +1272,22 @@
                 document.getElementById('filtersArrow').classList.toggle('open');
             });
 
-            document.getElementById('loadGoogleBtn').addEventListener('click', lerGoogleSheets);
-            document.getElementById('refreshBtn').addEventListener('click', salvarGoogleSheets);
             document.getElementById('btnNovoRegistro').addEventListener('click', novaColhedora);
-            document.getElementById('exportBtn').addEventListener('click', exportarCSV);
-            document.getElementById('clearBtn').addEventListener('click', limparTodos);
-            document.getElementById('normalizeBtn').addEventListener('click', normalizarPlanilha);
             document.getElementById('historyBtn').addEventListener('click', abrirHistorico);
             document.getElementById('histCancel').addEventListener('click', fecharHistorico);
             document.getElementById('histFechar').addEventListener('click', fecharHistorico);
             document.getElementById('histSearch').addEventListener('click', pesquisarHistorico);
+
+            const btnOficina = document.getElementById('btnOficinaToggle');
+            if (btnOficina) {
+                btnOficina.addEventListener('click', function() {
+                    this.classList.toggle('ativo');
+                    const statusBadge = document.getElementById('oficinaStatus');
+                    if (statusBadge) {
+                        statusBadge.textContent = this.classList.contains('ativo') ? 'Sim' : 'Não';
+                    }
+                });
+            }
 
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const dataFiltro = document.getElementById('filterData').value;
