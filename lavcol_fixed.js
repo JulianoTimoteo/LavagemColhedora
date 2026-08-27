@@ -1,0 +1,488 @@
+// ============================================================
+// Google Apps Script - Controle de Lavagem
+// VERSÃO SIMPLIFICADA - 100% FUNCIONAL
+// ============================================================
+
+// ============================================================
+//  DOGET - SUPORTA JSONP E AÇÕES VIA GET
+// ============================================================
+function doGet(e) {
+  // ==========================================================
+  // SE TIVER 'dados' -> PROCESSAR AÇÃO (via GET)
+  // ==========================================================
+  if (e && e.parameter && e.parameter.dados) {
+    try {
+      const dados = JSON.parse(e.parameter.dados);
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      if (!ss) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Planilha não encontrada' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const sheet = obterAba(ss);
+      if (!sheet) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Nenhuma aba encontrada' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const resultado = executarAcao(sheet, dados);
+      return ContentService
+        .createTextOutput(JSON.stringify(resultado))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (erro) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ sucesso: false, erro: erro.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  // ==========================================================
+  // SE TIVER 'callback' -> RETORNA JSONP
+  // ==========================================================
+  const callback = (e && e.parameter && e.parameter.callback) || 'callback';
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      return ContentService
+        .createTextOutput(`${callback}({ "sucesso": false, "erro": "Planilha não encontrada", "dados": [] })`)
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    const sheet = obterAba(ss);
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(`${callback}({ "sucesso": false, "erro": "Nenhuma aba encontrada", "dados": [] })`)
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    const dados = sheet.getDataRange().getValues();
+    const registros = [];
+    let id = 1;
+
+    if (dados.length < 2) {
+      return ContentService
+        .createTextOutput(`${callback}({ "sucesso": true, "dados": [], "total": 0 })`)
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    // Processar dados
+    for (let i = 1; i < dados.length; i++) {
+      const linha = dados[i];
+      if (!linha[0] && !linha[1]) continue;
+
+      const frente = String(linha[0] || '').trim();
+      const frota = String(linha[1] || '').trim();
+
+      if (!frente || !frota) continue;
+
+      // Para cada coluna de data
+      for (let j = 2; j < linha.length; j++) {
+        const valor = String(linha[j] || '').trim().toUpperCase();
+        if (valor && valor !== '') {
+          const nomeCol = String(dados[0][j] || '').trim();
+          const dataCol = converterNomeColunaParaData(nomeCol);
+          if (dataCol) {
+            registros.push({
+              id: id++,
+              frente: frente,
+              frota: frota,
+              turno: null,
+              data: dataCol,
+              status: normalizarStatus(valor),
+              oficina: valor === 'OFICINA'
+            });
+          }
+        }
+      }
+    }
+
+    const resultado = JSON.stringify({ sucesso: true, dados: registros, total: registros.length });
+    return ContentService
+      .createTextOutput(`${callback}(${resultado})`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+
+  } catch (erro) {
+    const resultado = JSON.stringify({ sucesso: false, erro: erro.toString(), dados: [] });
+    return ContentService
+      .createTextOutput(`${callback}(${resultado})`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+}
+
+// ============================================================
+//  DOPOST - FALHA SEGURA
+// ============================================================
+function doPost(e) {
+  try {
+    let dados;
+    if (e && e.postData && e.postData.contents) {
+      dados = JSON.parse(e.postData.contents);
+    } else {
+      return ContentService
+        .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Nenhum dado recebido' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Planilha não encontrada' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const sheet = obterAba(ss);
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Nenhuma aba encontrada' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (dados.acao) {
+      const resultado = executarAcao(sheet, dados);
+      return ContentService
+        .createTextOutput(JSON.stringify(resultado))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Ação não especificada' }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (erro) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ sucesso: false, erro: erro.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function converterNomeColunaParaData(nomeCol) {
+  if (!nomeCol) return null;
+  
+  const mesesPT = {
+    'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04',
+    'mai': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+    'set': '09', 'out': '10', 'nov': '11', 'dez': '12'
+  };
+  
+  const mesesEN = {
+    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+    'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+    'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+  };
+
+  const partes = nomeCol.toLowerCase().replace('.', '').split('-');
+  if (partes.length === 2) {
+    const dia = String(partes[0]).padStart(2, '0');
+    const mes = mesesPT[partes[1]] || mesesEN[partes[1]] || null;
+    if (mes) {
+      return `2026-${mes}-${dia}`;
+    }
+  }
+  return null;
+}
+
+function normalizarStatus(valor) {
+  const v = String(valor || '').trim().toUpperCase();
+  if (v === 'OK' || v === 'OKS' || v === 'OO' || v === 'OPK' || v === 'SS') return 'OK';
+  if (v === 'NAOOK' || v === 'NAO OK') return 'NAOOK';
+  if (v === 'OFICINA' || v === 'OFICINA ') return 'OFICINA';
+  if (v === 'CHUVA') return 'CHUVA';
+  if (v === 'CLIMA') return 'CLIMA';
+  if (v === 'INCENDIO') return 'INCENDIO';
+  if (v === 'MANUTENÇÃO' || v === 'MANUTEN��O' || v === 'MANUTEN�.') return 'MANUTENÇÃO';
+  if (v === 'PARADA DESDE 12/07') return 'PARADA';
+  if (v === 'PRANCHA') return 'PRANCHA';
+  return v;
+}
+
+function getDataAtual() {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, '0');
+  const d = String(hoje.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function normalizarData_(valor) {
+  if (valor instanceof Date) {
+    return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(valor || '').trim();
+}
+
+function obterAba(ss) {
+  const nomes = ['LAVAGEM', 'Planilha1', 'Sheet1'];
+  for (const nome of nomes) {
+    const sheet = ss.getSheetByName(nome);
+    if (sheet) return sheet;
+  }
+  const sheets = ss.getSheets();
+  if (sheets && sheets.length > 0) return sheets[0];
+  const sheet = ss.insertSheet('LAVAGEM');
+  return sheet;
+}
+
+// ============================================================
+//  EXECUTAR AÇÃO
+// ============================================================
+function executarAcao(sheet, dados) {
+  try {
+    const acao = dados.acao;
+
+    switch (acao) {
+      case 'atualizarStatus':
+        return atualizarStatus(sheet, dados);
+      case 'moverFrente':
+        return moverFrente(sheet, dados);
+      case 'enviarOficina':
+        return enviarOficina(sheet, dados);
+      case 'excluir':
+        return excluirRegistro(sheet, dados);
+      case 'adicionar':
+        return adicionarColhedora(sheet, dados);
+      case 'criarRegistrosDia':
+        return criarRegistrosDia(sheet, dados);
+      default:
+        return { sucesso: false, erro: `Ação '${acao}' não reconhecida` };
+    }
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+// ============================================================
+//  FUNÇÕES DE AÇÃO
+// ============================================================
+function encontrarLinhaFrota(sheet, frota) {
+  const dados = sheet.getDataRange().getValues();
+  const frotaAlvo = String(frota || '').trim();
+  for (let i = 1; i < dados.length; i++) {
+    if (String(dados[i][1] || '').trim() === frotaAlvo) {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+function encontrarColunaData(sheet, data) {
+  const cabecalho = sheet.getDataRange().getValues()[0];
+  const dataAlvo = normalizarData_(data);
+  for (let i = 2; i < cabecalho.length; i++) {
+    const nomeCol = String(cabecalho[i] || '').trim();
+    const dataCol = converterNomeColunaParaData(nomeCol);
+    if (dataCol === dataAlvo) {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+function garantirColunaData(sheet, data) {
+  let col = encontrarColunaData(sheet, data);
+  if (col !== -1) return col;
+  const cabecalho = sheet.getDataRange().getValues()[0];
+  const ultimaCol = cabecalho.length || 2;
+  const dataAlvo = normalizarData_(data);
+  const partes = dataAlvo.split('-');
+  const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const nomeCol = `${parseInt(partes[2])}-${meses[parseInt(partes[1]) - 1]}`;
+  sheet.getRange(1, ultimaCol + 1).setValue(nomeCol);
+  return ultimaCol + 1;
+}
+
+function garantirLinhaFrota(sheet, frota, frente) {
+  let linha = encontrarLinhaFrota(sheet, frota);
+  if (linha !== -1) return linha;
+  const ultimaLinha = sheet.getLastRow();
+  sheet.appendRow([frente || 'FRENTE - 08', frota]);
+  return ultimaLinha + 1;
+}
+
+function atualizarStatus(sheet, dados) {
+  try {
+    const { frota, data, status, turno, frente } = dados;
+    const linha = garantirLinhaFrota(sheet, frota, frente);
+    const col = garantirColunaData(sheet, data);
+    const valor = normalizarStatus(status);
+    sheet.getRange(linha, col).setValue(valor);
+    return { sucesso: true, mensagem: `Status de ${frota} para ${data} atualizado para ${status}` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function criarRegistrosDia(sheet, dados) {
+  try {
+    const { data, frentesFrotas } = dados;
+    if (!frentesFrotas || frentesFrotas.length === 0) {
+      return { sucesso: true, mensagem: 'Nenhum roster informado', criados: 0 };
+    }
+    const dataAlvo = normalizarData_(data) || getDataAtual();
+    const col = garantirColunaData(sheet, dataAlvo);
+    let criados = 0;
+    for (const [frente, frota] of frentesFrotas) {
+      const linha = garantirLinhaFrota(sheet, frota, frente);
+      const celula = sheet.getRange(linha, col);
+      const valorAtual = celula.getValue();
+      if (!valorAtual || String(valorAtual).trim() === '') {
+        celula.setValue('NAOOK');
+        criados++;
+      }
+    }
+    return { sucesso: true, mensagem: `${criados} registros criados para ${dataAlvo}`, criados: criados };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function moverFrente(sheet, dados) {
+  try {
+    const { frota, novaFrente } = dados;
+    const linha = encontrarLinhaFrota(sheet, frota);
+    if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
+    sheet.getRange(linha, 1).setValue(novaFrente);
+    return { sucesso: true, mensagem: `Frota ${frota} movida para ${novaFrente}` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function enviarOficina(sheet, dados) {
+  try {
+    const { frota, enviar, data } = dados;
+    const linha = encontrarLinhaFrota(sheet, frota);
+    if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
+    const col = garantirColunaData(sheet, data);
+    sheet.getRange(linha, col).setValue(enviar ? 'OFICINA' : 'NAOOK');
+    return { sucesso: true, mensagem: enviar ? `Frota ${frota} enviada para a oficina` : `Frota ${frota} removida da oficina` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function excluirRegistro(sheet, dados) {
+  try {
+    const { frota } = dados;
+    const linha = encontrarLinhaFrota(sheet, frota);
+    if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
+    sheet.deleteRow(linha);
+    return { sucesso: true, mensagem: `Frota ${frota} excluída` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function adicionarColhedora(sheet, dados) {
+  try {
+    const { frente, frota } = dados;
+    const linha = encontrarLinhaFrota(sheet, frota);
+    if (linha !== -1) return { sucesso: false, erro: `Frota ${frota} já existe` };
+    sheet.appendRow([frente, frota]);
+    return { sucesso: true, mensagem: `Colhedora ${frota} adicionada` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+// ============================================================
+//  FUNÇÃO PARA CRIAR ESTRUTURA INICIAL
+// ============================================================
+function criarEstruturaInicial() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      Logger.log('❌ Planilha não encontrada');
+      return { sucesso: false, erro: 'Planilha não encontrada' };
+    }
+
+    let sheet = ss.getSheetByName('LAVAGEM');
+    if (!sheet) {
+      sheet = ss.insertSheet('LAVAGEM');
+    }
+
+    const cabecalho = ['FRENTES', 'FROTAS'];
+    const hoje = new Date();
+    const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    
+    for (let i = -5; i <= 5; i++) {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() + i);
+      const nomeCol = `${d.getDate()}-${meses[d.getMonth()]}`;
+      cabecalho.push(nomeCol);
+    }
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(cabecalho);
+    }
+
+    const frotas = [
+      ['FRENTE - 08', '80118'], ['FRENTE - 08', '80317'],
+      ['FRENTE - 10', '80119'], ['FRENTE - 10', '80719'],
+      ['FRENTE - 11', '80319'], ['FRENTE - 11', '80217'], ['FRENTE - 11', '80419'],
+      ['FRENTE - 12', '80316'], ['FRENTE - 12', '80320'],
+      ['FRENTE - 13', '80124'], ['FRENTE - 13', '80224'],
+      ['FRENTE - 14', '80219'], ['FRENTE - 14B', '80422'], ['FRENTE - 14A', '80122'],
+      ['FRENTE - 14B', '80420'], ['FRENTE - 14B', '80222'], ['FRENTE - 14A', '80322'],
+      ['FRENTE - 15', '80120'], ['FRENTE - 15', '80519'], ['FRENTE - 15', '80619']
+    ];
+
+    const dadosExistentes = sheet.getDataRange().getValues();
+    const frotasExistentes = new Set();
+    for (let i = 1; i < dadosExistentes.length; i++) {
+      if (dadosExistentes[i][1]) {
+        frotasExistentes.add(String(dadosExistentes[i][1]).trim());
+      }
+    }
+
+    for (const [frente, frota] of frotas) {
+      if (!frotasExistentes.has(frota)) {
+        const linha = [frente, frota];
+        for (let i = 0; i < cabecalho.length - 2; i++) {
+          linha.push('NAOOK');
+        }
+        sheet.appendRow(linha);
+      }
+    }
+
+    sheet.getRange(1, 1, 1, cabecalho.length).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, cabecalho.length).setBackground('#e2e8f0');
+
+    Logger.log('✅ Estrutura inicial criada!');
+    return { sucesso: true, mensagem: 'Estrutura inicial criada!' };
+  } catch (erro) {
+    Logger.log(`❌ Erro: ${erro.toString()}`);
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+// ============================================================
+//  FUNÇÃO PARA TESTAR CONEXÃO
+// ============================================================
+function testarConexao() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      Logger.log('❌ Planilha não encontrada');
+      return { sucesso: false, erro: 'Planilha não encontrada' };
+    }
+
+    const sheet = obterAba(ss);
+    if (!sheet) {
+      Logger.log('❌ Nenhuma aba encontrada');
+      return { sucesso: false, erro: 'Nenhuma aba encontrada' };
+    }
+
+    const dados = sheet.getDataRange().getValues();
+    Logger.log(`✅ Conexão OK! Aba: ${sheet.getName()}, ${dados.length} linhas`);
+    return { sucesso: true, mensagem: 'Conexão OK!', totalLinhas: dados.length };
+  } catch (erro) {
+    Logger.log(`❌ Erro: ${erro.toString()}`);
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
