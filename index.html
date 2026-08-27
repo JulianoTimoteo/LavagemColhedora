@@ -617,6 +617,14 @@
 
                     salvarLocal();
                     aplicarFiltroDataAtual();
+                    
+                    const temHoje = registrosOriginais.some(r => r.data === getDataAtual());
+                    if (!temHoje) {
+                        statusText.innerHTML = `ℹ️ <span class="info">Criando registros de hoje...</span>`;
+                        criarRegistrosDia();
+                        return;
+                    }
+                    
                     renderizarTudo();
                     statusText.innerHTML = `✅ <span class="ok">${registrosOriginais.length} registros na planilha</span>`;
                 } else {
