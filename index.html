@@ -360,6 +360,9 @@
         ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
         .pulse { animation: pulse 1.5s ease-in-out infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .btn-history { background: #805ad5; color: white; }
+        .btn-history:hover { background: #6b46c1; }
+        .erro-msg { color: #c53030; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -377,6 +380,7 @@
                 <button class="btn btn-export" id="exportBtn" title="Exportar CSV">📤 <span>Exportar</span></button>
                 <button class="btn btn-clear" id="clearBtn" title="Limpar Dados Locais">🗑️ <span>Limpar</span></button>
                 <button class="btn btn-filter" id="normalizeBtn" title="Normalizar Planilha">🧹 <span>Normalizar</span></button>
+                <button class="btn btn-history" id="historyBtn" title="Histórico">📊 <span>Histórico</span></button>
             </div>
         </header>
 
@@ -490,6 +494,53 @@
                 <button class="btn-excluir" id="modalFrotaExcluir">🗑️ Excluir</button>
                 <button class="btn-cancel" id="modalFrotaCancel">Cancelar</button>
                 <button class="btn-save" id="modalFrotaSave">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalHistorico">
+        <div class="modal">
+            <h3>📊 Histórico da Frota</h3>
+            <div class="info-row" style="margin-bottom: 12px;">
+                <strong id="histFrotaNumero">-</strong>
+                <span style="margin-left: 8px; color: #718096;">Histórico de movimentações</span>
+            </div>
+            
+            <label>Frota:</label>
+            <input type="text" id="histFrotaInput" placeholder="Digite a frota (ex: 80118)" autocomplete="off" />
+            
+            <label>Data Inicial:</label>
+            <input type="date" id="histDataInicio" />
+            
+            <label>Data Final:</label>
+            <input type="date" id="histDataFim" />
+
+            <div class="modal-actions">
+                <button class="btn-cancel" id="histCancel">Cancelar</button>
+                <button class="btn-save" id="histSearch">🔍 Pesquisar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalHistoricoResultado">
+        <div class="modal" style="max-width: 600px;">
+            <h3>📊 Resultado da Pesquisa</h3>
+            <div class="table-wrapper" style="max-height: 50vh; overflow-y: auto; margin-top: 10px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Ação</th>
+                            <th>Frente Anterior</th>
+                            <th>Frente Nova</th>
+                        </tr>
+                    </thead>
+                    <tbody id="histTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="histFechar">Fechar</button>
             </div>
         </div>
     </div>
@@ -1035,7 +1086,8 @@
 
             const frente = document.getElementById('modalFrotaFrente').value.trim();
             if (!frente) { mostrarToast('⚠️ Informe a frente', 'error'); return; }
-            const oficina = document.getElementById('modalFrotaOficina').checked;
+            const btnOficina = document.getElementById('btnOficinaToggle');
+            const oficina = btnOficina.classList.contains('ativo');
 
             r.frente = frente;
             r.oficina = oficina;
@@ -1053,11 +1105,11 @@
                     data: r.data
                 });
             }
-            if (oficina !== r.oficina) {
+            if (oficina) {
                 promises.push({
                     acao: 'enviarOficina',
                     frota: r.frota,
-                    enviar: oficina,
+                    enviar: true,
                     data: r.data
                 });
             }
@@ -1151,6 +1203,81 @@
         }
 
         // ============================================================
+        //  HISTÓRICO
+        // ============================================================
+        function abrirHistorico() {
+            const hoje = getDataAtual();
+            document.getElementById('histDataInicio').value = hoje;
+            document.getElementById('histDataFim').value = hoje;
+            document.getElementById('histFrotaInput').value = '';
+            document.getElementById('modalHistorico').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharHistorico() {
+            document.getElementById('modalHistorico').classList.remove('active');
+            document.getElementById('modalHistoricoResultado').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function pesquisarHistorico() {
+            const frota = document.getElementById('histFrotaInput').value.trim();
+            const dataInicio = document.getElementById('histDataInicio').value;
+            const dataFim = document.getElementById('histDataFim').value;
+
+            if (!frota) { mostrarToast('⚠️ Informe a frota', 'error'); return; }
+            if (!dataInicio || !dataFim) { mostrarToast('⚠️ Informe o período', 'error'); return; }
+
+            const tbody = document.getElementById('histTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="loading-msg pulse">⏳ Pesquisando histórico...</td></tr>';
+            document.getElementById('modalHistoricoResultado').classList.add('active');
+
+            const payload = {
+                acao: 'consultarHistorico',
+                frota: frota,
+                dataInicio: dataInicio,
+                dataFim: dataFim
+            };
+
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
+            document.body.appendChild(iframe);
+
+            window.histCallback = function(data) {
+                delete window.histCallback;
+                document.body.removeChild(iframe);
+
+                if (data.erro) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="erro-msg">❌ ${data.erro}</td></tr>`;
+                    return;
+                }
+
+                if (!data.dados || data.dados.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">📋 Nenhum registro encontrado</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.dados.map(item => `
+                    <tr>
+                        <td>${item.dataHora || '-'}</td>
+                        <td>${item.acao || '-'}</td>
+                        <td>${item.frenteAnterior || '-'}</td>
+                        <td>${item.frenteNova || '-'}</td>
+                    </tr>
+                `).join('');
+            };
+
+            const script = document.createElement('script');
+            script.src = CONFIG.webAppUrl + '?callback=histCallback&dados=' + encodeURIComponent(JSON.stringify(payload));
+            document.body.appendChild(script);
+
+            setTimeout(() => {
+                if (script.parentNode) script.parentNode.removeChild(script);
+            }, 5000);
+        }
+
+        // ============================================================
         //  TOAST
         // ============================================================
         let toastTimeout;
@@ -1201,6 +1328,10 @@
             document.getElementById('exportBtn').addEventListener('click', exportarCSV);
             document.getElementById('clearBtn').addEventListener('click', limparTodos);
             document.getElementById('normalizeBtn').addEventListener('click', normalizarPlanilha);
+            document.getElementById('historyBtn').addEventListener('click', abrirHistorico);
+            document.getElementById('histCancel').addEventListener('click', fecharHistorico);
+            document.getElementById('histFechar').addEventListener('click', fecharHistorico);
+            document.getElementById('histSearch').addEventListener('click', pesquisarHistorico);
 
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const dataFiltro = document.getElementById('filterData').value;

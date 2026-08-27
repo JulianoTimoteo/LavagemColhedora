@@ -68,34 +68,43 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
 
-    // Processar dados
+    const hoje = getDataAtual();
+    const linhas = [];
     for (let i = 1; i < dados.length; i++) {
-      const linha = dados[i];
-      if (!linha[0] && !linha[1]) continue;
+      const frente = String(dados[i][0] || '').trim();
+      const frota = String(dados[i][1] || '').trim();
+      if (frente && frota) linhas.push({ frente, frota, dados: dados[i] });
+    }
 
-      const frente = String(linha[0] || '').trim();
-      const frota = String(linha[1] || '').trim();
-
-      if (!frente || !frota) continue;
-
-      // Para cada coluna de data
+    for (const { frente, frota, dados: linha } of linhas) {
+      let achouHoje = false;
       for (let j = 2; j < linha.length; j++) {
         const valor = String(linha[j] || '').trim().toUpperCase();
-        if (valor && valor !== '') {
-          const nomeCol = String(dados[0][j] || '').trim();
-          const dataCol = converterNomeColunaParaData(nomeCol);
-          if (dataCol) {
-            registros.push({
-              id: id++,
-              frente: frente,
-              frota: frota,
-              turno: null,
-              data: dataCol,
-              status: normalizarStatus(valor),
-              oficina: valor === 'OFICINA'
-            });
-          }
-        }
+        if (!valor) continue;
+        const nomeCol = String(dados[0][j] || '').trim();
+        const dataCol = converterNomeColunaParaData(nomeCol);
+        if (!dataCol) continue;
+        registros.push({
+          id: id++,
+          frente,
+          frota,
+          turno: null,
+          data: dataCol,
+          status: normalizarStatus(valor),
+          oficina: valor === 'OFICINA'
+        });
+        if (dataCol === hoje) achouHoje = true;
+      }
+      if (!achouHoje) {
+        registros.push({
+          id: id++,
+          frente,
+          frota,
+          turno: null,
+          data: hoje,
+          status: 'NAOOK',
+          oficina: false
+        });
       }
     }
 
@@ -209,6 +218,16 @@ function getDataAtual() {
   return `${y}-${m}-${d}`;
 }
 
+function ehMais48h(dataRef) {
+  const hoje = new Date();
+  const partes = String(dataRef || '').split('-');
+  if (partes.length !== 3) return true;
+  const ref = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+  const diffMs = hoje - ref;
+  const diffHoras = diffMs / (1000 * 60 * 60);
+  return diffHoras > 48;
+}
+
 function normalizarData_(valor) {
   if (valor instanceof Date) {
     return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd');
@@ -226,6 +245,42 @@ function obterAba(ss) {
   if (sheets && sheets.length > 0) return sheets[0];
   const sheet = ss.insertSheet('LAVAGEM');
   return sheet;
+}
+
+function obterAbaHistorico(ss) {
+  let sheet = ss.getSheetByName('HISTORICO');
+  if (!sheet) {
+    sheet = ss.insertSheet('HISTORICO');
+    sheet.appendRow(['DATA_HORA', 'ACAO', 'FROTA', 'FRENTE_ANTERIOR', 'FRENTE_NOVA', 'STATUS_ANTERIOR', 'STATUS_NOVO', 'DATA_REF', 'USUARIO']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  return sheet;
+}
+
+function registrarHistorico(sheet, dados) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetHist = obterAbaHistorico(ss);
+    const usuario = Session.getActiveUser().getEmail() || 'usuario';
+    const dataHora = new Date();
+    const dataHoraStr = Utilities.formatDate(dataHora, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    
+    const linha = [
+      dataHoraStr,
+      dados.acao || '',
+      dados.frota || '',
+      dados.frenteAnterior || '',
+      dados.frente || '',
+      dados.statusAnterior || '',
+      dados.status || '',
+      dados.data || getDataAtual(),
+      usuario
+    ];
+    
+    sheetHist.appendRow(linha);
+  } catch (erro) {
+    Logger.log(`Erro ao registrar histórico: ${erro.toString()}`);
+  }
 }
 
 // ============================================================
@@ -248,6 +303,10 @@ function executarAcao(sheet, dados) {
         return adicionarColhedora(sheet, dados);
       case 'criarRegistrosDia':
         return criarRegistrosDia(sheet, dados);
+      case 'normalizarPlanilha':
+        return normalizarPlanilha(sheet);
+      case 'consultarHistorico':
+        return consultarHistorico(sheet, dados);
       default:
         return { sucesso: false, erro: `Ação '${acao}' não reconhecida` };
     }
@@ -304,9 +363,54 @@ function garantirLinhaFrota(sheet, frota, frente) {
   return ultimaLinha + 1;
 }
 
+function normalizarPlanilha(sheet) {
+  try {
+    const dados = sheet.getDataRange().getValues();
+    const linhasValidas = [];
+    const frotasVistas = new Set();
+    
+    if (dados.length > 0) {
+      linhasValidas.push(dados[0]);
+    }
+    
+    for (let i = 1; i < dados.length; i++) {
+      const frente = String(dados[i][0] || '').trim();
+      const frota = String(dados[i][1] || '').trim();
+      
+      if (!frente && !frota) continue;
+      
+      const chave = `${frente}|${frota}`;
+      if (frotasVistas.has(chave)) continue;
+      
+      frotasVistas.add(chave);
+      
+      const novaLinha = [frente, frota];
+      for (let j = 2; j < dados[i].length; j++) {
+        novaLinha.push(dados[i][j]);
+      }
+      linhasValidas.push(novaLinha);
+    }
+    
+    if (linhasValidas.length < dados.length) {
+      sheet.clearContents();
+      sheet.getRange(1, 1, linhasValidas.length, linhasValidas[0].length).setValues(linhasValidas);
+      Logger.log(`✅ Planilha normalizada: ${dados.length} → ${linhasValidas.length} linhas`);
+      return { sucesso: true, mensagem: `Planilha normalizada: removidas ${dados.length - linhasValidas.length} linhas duplicadas/vazias` };
+    }
+    
+    return { sucesso: true, mensagem: 'Planilha já está limpa' };
+  } catch (erro) {
+    Logger.log(`❌ Erro ao normalizar: ${erro.toString()}`);
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
 function atualizarStatus(sheet, dados) {
   try {
     const { frota, data, status, turno, frente } = dados;
+    if (ehMais48h(data)) {
+      return { sucesso: false, erro: 'Não é permitido alterar registros com mais de 48h' };
+    }
     const linha = garantirLinhaFrota(sheet, frota, frente);
     const col = garantirColunaData(sheet, data);
     const valor = normalizarStatus(status);
@@ -324,6 +428,9 @@ function criarRegistrosDia(sheet, dados) {
       return { sucesso: true, mensagem: 'Nenhum roster informado', criados: 0 };
     }
     const dataAlvo = normalizarData_(data) || getDataAtual();
+    if (ehMais48h(dataAlvo)) {
+      return { sucesso: false, erro: 'Não é permitido criar registros com mais de 48h' };
+    }
     const col = garantirColunaData(sheet, dataAlvo);
     let criados = 0;
     for (const [frente, frota] of frentesFrotas) {
@@ -343,7 +450,10 @@ function criarRegistrosDia(sheet, dados) {
 
 function moverFrente(sheet, dados) {
   try {
-    const { frota, novaFrente } = dados;
+    const { frota, novaFrente, data } = dados;
+    if (ehMais48h(data)) {
+      return { sucesso: false, erro: 'Não é permitido alterar registros com mais de 48h' };
+    }
     const linha = encontrarLinhaFrota(sheet, frota);
     if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
     sheet.getRange(linha, 1).setValue(novaFrente);
@@ -356,6 +466,9 @@ function moverFrente(sheet, dados) {
 function enviarOficina(sheet, dados) {
   try {
     const { frota, enviar, data } = dados;
+    if (ehMais48h(data)) {
+      return { sucesso: false, erro: 'Não é permitido alterar registros com mais de 48h' };
+    }
     const linha = encontrarLinhaFrota(sheet, frota);
     if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
     const col = garantirColunaData(sheet, data);
@@ -368,7 +481,10 @@ function enviarOficina(sheet, dados) {
 
 function excluirRegistro(sheet, dados) {
   try {
-    const { frota } = dados;
+    const { frota, data } = dados;
+    if (ehMais48h(data)) {
+      return { sucesso: false, erro: 'Não é permitido excluir registros com mais de 48h' };
+    }
     const linha = encontrarLinhaFrota(sheet, frota);
     if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
     sheet.deleteRow(linha);
