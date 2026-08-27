@@ -59,7 +59,6 @@ function doGet(e) {
         }
 
         const dados = sheet.getDataRange().getValues();
-        const registros = [];
         const mapa = new Map();
         let id = 1;
 

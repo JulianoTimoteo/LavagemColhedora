@@ -59,7 +59,7 @@ function doGet(e) {
     }
 
     const dados = sheet.getDataRange().getValues();
-    const registros = [];
+    const mapa = new Map();
     let id = 1;
 
     if (dados.length < 2) {
@@ -84,30 +84,37 @@ function doGet(e) {
         const nomeCol = String(dados[0][j] || '').trim();
         const dataCol = converterNomeColunaParaData(nomeCol);
         if (!dataCol) continue;
-        registros.push({
-          id: id++,
-          frente,
-          frota,
-          turno: null,
-          data: dataCol,
-          status: normalizarStatus(valor),
-          oficina: valor === 'OFICINA'
-        });
+        const chave = `${frota}|${dataCol}`;
+        if (!mapa.has(chave)) {
+          mapa.set(chave, {
+            id: id++,
+            frente,
+            frota,
+            turno: null,
+            data: dataCol,
+            status: normalizarStatus(valor),
+            oficina: valor === 'OFICINA'
+          });
+        }
         if (dataCol === hoje) achouHoje = true;
       }
       if (!achouHoje) {
-        registros.push({
-          id: id++,
-          frente,
-          frota,
-          turno: null,
-          data: hoje,
-          status: 'NAOOK',
-          oficina: false
-        });
+        const chave = `${frota}|${hoje}`;
+        if (!mapa.has(chave)) {
+          mapa.set(chave, {
+            id: id++,
+            frente,
+            frota,
+            turno: null,
+            data: hoje,
+            status: 'NAOOK',
+            oficina: false
+          });
+        }
       }
     }
 
+    const registros = Array.from(mapa.values());
     const resultado = JSON.stringify({ sucesso: true, dados: registros, total: registros.length });
     return ContentService
       .createTextOutput(`${callback}(${resultado})`)
