@@ -223,12 +223,15 @@
         .modal label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 13px; color: #2d3748; }
         .modal select, .modal input { width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; -webkit-appearance: none; appearance: none; }
         .modal select:focus, .modal input:focus { border-color: #2b6cb0; outline: none; }
-        .modal .switch-row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding: 10px 14px; background: #f7fafc; border-radius: 8px; }
-        .modal .switch-row span { font-weight: 600; font-size: 13px; color: #2d3748; }
-        .modal .switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #e53e3e; }
-        .modal .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
-        .modal .btn-group button { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; touch-action: manipulation; }
-        .modal .btn-group button:active { transform: scale(0.95); }
+        .btn-oficina { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 14px; padding: 12px 14px; border: 2px solid #e53e3e; border-radius: 10px; background: #fff5f5; color: #c53030; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
+        .btn-oficina:hover { background: #fed7d7; }
+        .btn-oficina.ativo { background: #e53e3e; color: white; border-color: #e53e3e; }
+        .btn-oficina .icone { font-size: 18px; }
+        .btn-oficina .status-badge { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 12px; background: rgba(255,255,255,0.25); }
+        .btn-oficina.ativo .status-badge { background: rgba(255,255,255,0.25); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
+        .modal-actions button { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; touch-action: manipulation; }
+        .modal-actions button:active { transform: scale(0.95); }
         .modal .btn-save { background: #2b6cb0; color: white; }
         .modal .btn-save:hover { background: #1a365d; }
         .modal .btn-cancel { background: #e2e8f0; color: #2d3748; }
@@ -472,16 +475,18 @@
             <div class="info-row" id="modalFrotaInfo">
                 <strong id="modalFrotaNumero">-</strong> - <span id="modalFrotaFrenteAtual">-</span>
             </div>
+            
             <label>Frente:</label>
-            <input type="text" id="modalFrotaFrente" placeholder="Ex: FRENTE - 08" list="listaFrentes" />
+            <input type="text" id="modalFrotaFrente" placeholder="Ex: FRENTE - 08" list="listaFrentes" autocomplete="off" />
             <datalist id="listaFrentes"></datalist>
 
-            <div class="switch-row">
-                <span>🔧 Enviar para a Oficina</span>
-                <input type="checkbox" id="modalFrotaOficina" />
-            </div>
+            <button type="button" class="btn-oficina" id="btnOficinaToggle">
+                <span class="icone">🔧</span>
+                <span class="texto">Enviar para a Oficina</span>
+                <span class="status-badge" id="oficinaStatus">Não</span>
+            </button>
 
-            <div class="btn-group">
+            <div class="modal-actions">
                 <button class="btn-excluir" id="modalFrotaExcluir">🗑️ Excluir</button>
                 <button class="btn-cancel" id="modalFrotaCancel">Cancelar</button>
                 <button class="btn-save" id="modalFrotaSave">💾 Salvar</button>
@@ -1003,7 +1008,11 @@
             document.getElementById('modalFrotaNumero').textContent = r.frota;
             document.getElementById('modalFrotaFrenteAtual').textContent = r.frente;
             document.getElementById('modalFrotaFrente').value = r.frente;
-            document.getElementById('modalFrotaOficina').checked = !!r.oficina;
+
+            const btnOficina = document.getElementById('btnOficinaToggle');
+            const statusBadge = document.getElementById('oficinaStatus');
+            btnOficina.classList.toggle('ativo', !!r.oficina);
+            statusBadge.textContent = !!r.oficina ? 'Sim' : 'Não';
 
             const datalist = document.getElementById('listaFrentes');
             const frentes = [...new Set(registrosOriginais.map(x => x.frente))].sort();
