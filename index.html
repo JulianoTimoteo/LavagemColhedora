@@ -1144,6 +1144,8 @@
 
             const rOrig = registrosOriginais.find(x => x.id === edicaoFrotaId);
             const frenteAnterior = rOrig ? rOrig.frente : r.frente;
+            const oficinaAnterior = rOrig ? rOrig.oficina : r.oficina;
+            const desativadaAnterior = rOrig ? rOrig.desativada : r.desativada;
 
             if (oficina) {
                 frente = GRUPO_OFICINA;
@@ -1179,7 +1181,7 @@
             renderizarTudo();
 
             const promises = [];
-            if (frente !== r.frente) {
+            if (frente !== frenteAnterior) {
                 promises.push({
                     acao: 'moverFrente',
                     frota: r.frota,
@@ -1187,7 +1189,7 @@
                     data: r.data
                 });
             }
-            if (oficina !== r.oficina) {
+            if (oficina !== oficinaAnterior) {
                 promises.push({
                     acao: 'enviarOficina',
                     frota: r.frota,
@@ -1195,7 +1197,7 @@
                     data: r.data
                 });
             }
-            if (desativada !== r.desativada) {
+            if (desativada !== desativadaAnterior) {
                 promises.push({
                     acao: 'desativarFrente',
                     frota: r.frota,
