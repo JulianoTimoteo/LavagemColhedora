@@ -81,6 +81,7 @@ function doGet(e) {
       for (let j = 2; j < linha.length; j++) {
         const valor = String(linha[j] || '').trim().toUpperCase();
         if (!valor) continue;
+        if (valor === 'DESATIVADA') continue;
         const nomeCol = String(dados[0][j] || '').trim();
         const dataCol = converterNomeColunaParaData(nomeCol);
         if (!dataCol) continue;
@@ -211,9 +212,10 @@ function normalizarStatus(valor) {
   if (v === 'CHUVA') return 'CHUVA';
   if (v === 'CLIMA') return 'CLIMA';
   if (v === 'INCENDIO') return 'INCENDIO';
-  if (v === 'MANUTENÇÃO' || v === 'MANUTEN��O' || v === 'MANUTEN�.') return 'MANUTENÇÃO';
+  if (v === 'MANUTENÇÃO' || v === 'MANUTENÇÃO' || v === 'MANUTENÇÃO') return 'MANUTENÇÃO';
   if (v === 'PARADA DESDE 12/07') return 'PARADA';
   if (v === 'PRANCHA') return 'PRANCHA';
+  if (v === 'DESATIVADA') return 'DESATIVADA';
   return v;
 }
 
@@ -314,6 +316,8 @@ function executarAcao(sheet, dados) {
         return normalizarPlanilha(sheet);
       case 'consultarHistorico':
         return consultarHistorico(sheet, dados);
+      case 'desativarFrente':
+        return desativarFrente(sheet, dados);
       default:
         return { sucesso: false, erro: `Ação '${acao}' não reconhecida` };
     }
@@ -508,6 +512,22 @@ function adicionarColhedora(sheet, dados) {
     if (linha !== -1) return { sucesso: false, erro: `Frota ${frota} já existe` };
     sheet.appendRow([frente, frota]);
     return { sucesso: true, mensagem: `Colhedora ${frota} adicionada` };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.toString() };
+  }
+}
+
+function desativarFrente(sheet, dados) {
+  try {
+    const { frota, data, desativado } = dados;
+    if (ehMais48h(data)) {
+      return { sucesso: false, erro: 'Não é permitido alterar registros com mais de 48h' };
+    }
+    const linha = encontrarLinhaFrota(sheet, frota);
+    if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
+    const col = garantirColunaData(sheet, data);
+    sheet.getRange(linha, col).setValue(desativado ? 'DESATIVADA' : 'NAOOK');
+    return { sucesso: true, mensagem: desativado ? `Frota ${frota} desativada para ${data}` : `Frota ${frota} ativada para ${data}` };
   } catch (erro) {
     return { sucesso: false, erro: erro.toString() };
   }

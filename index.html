@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🚜 Controle de Lavagem</title>
+    <link rel="icon" href="https://julianotimoteo.github.io/OS-CAMPO/logo-usina.png" type="image/png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a202c; padding: 12px; min-height: 100vh; }
@@ -21,9 +22,12 @@
             flex-wrap: wrap;
             gap: 8px;
             box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .header-left h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .header-logo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: white; padding: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .header-left h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .header-left h1 span { font-size: 20px; }
         .header-time { font-size: 11px; opacity: 0.8; background: rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 16px; }
         .header-shift { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.18); padding: 4px 10px; border-radius: 16px; }
@@ -63,15 +67,18 @@
         .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
         .dashboard.desktop { grid-template-columns: repeat(6, 1fr); }
         .card {
-            background: white;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
             padding: 10px 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-left: 3px solid #2b6cb0;
             text-align: center;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12); }
         .card .label { font-size: 10px; color: #718096; text-transform: uppercase; font-weight: 700; letter-spacing: 0.3px; }
         .card .value { font-size: 22px; font-weight: 800; color: #1a202c; line-height: 1.2; }
         .card .sub { font-size: 10px; color: #4a5568; margin-top: 2px; }
@@ -102,15 +109,18 @@
         .filters-toggle .arrow { transition: transform 0.3s; font-size: 12px; }
         .filters-toggle .arrow.open { transform: rotate(180deg); }
         .filters-panel {
-            background: white;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
             padding: 12px 16px;
             margin-bottom: 10px;
             display: none;
             flex-wrap: wrap;
             gap: 10px;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .filters-panel.open { display: flex; }
         .filters-panel label { font-size: 12px; font-weight: 600; color: #4a5568; min-width: 40px; }
@@ -127,10 +137,13 @@
         .filters-panel .btn { padding: 6px 16px; font-size: 12px; min-height: 32px; }
 
         .table-wrapper {
-            background: white;
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
@@ -153,6 +166,14 @@
         .turno-badge.C { background: #e9d8fd; color: #44337a; }
         .turno-badge.dash { background: #edf2f7; color: #a0aec0; }
         .col-data { font-size: 12px; color: #4a5568; white-space: nowrap; min-width: 70px; }
+        .col-acoes { text-align: center; min-width: 50px; }
+        .btn-acao { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; line-height: 1; touch-action: manipulation; transition: all 0.2s; }
+        .btn-acao:hover { background: #edf2f7; transform: scale(1.1); }
+        .btn-acao:active { transform: scale(0.9); }
+        .btn-toggle-frente { color: #718096; }
+        .btn-toggle-frente:hover { background: #e2e8f0; }
+        .desativado-badge { display: inline-block; font-size: 9px; font-weight: 700; color: #744210; background: #fefcbf; padding: 1px 6px; border-radius: 8px; margin-left: 4px; white-space: nowrap; }
+        .linha-desativada { opacity: 0.6; }
         .status-cell { text-align: center; cursor: pointer; min-width: 70px; }
         .status-cell.disabled { cursor: not-allowed; }
         .status-badge { display: inline-block; padding: 4px 14px; border-radius: 14px; font-weight: 700; font-size: 12px; transition: transform 0.15s; white-space: nowrap; }
@@ -185,14 +206,17 @@
         .modal-overlay.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             padding: 24px 20px;
-            border-radius: 16px;
+            border-radius: 20px;
             max-width: 420px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             animation: slideUp 0.3s ease;
         }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -208,6 +232,12 @@
         .btn-oficina .icone { font-size: 18px; }
         .btn-oficina .status-badge { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 12px; background: rgba(255,255,255,0.25); }
         .btn-oficina.ativo .status-badge { background: rgba(255,255,255,0.25); }
+        .btn-disable { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 10px; padding: 12px 14px; border: 2px solid #718096; border-radius: 10px; background: #f7fafc; color: #4a5568; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
+        .btn-disable:hover { background: #edf2f7; }
+        .btn-disable.ativo { background: #718096; color: white; border-color: #718096; }
+        .btn-disable .icone { font-size: 18px; }
+        .btn-disable .status-badge { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 12px; background: rgba(255,255,255,0.25); }
+        .btn-disable.ativo .status-badge { background: rgba(255,255,255,0.25); }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
         .modal-actions button { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; touch-action: manipulation; }
         .modal-actions button:active { transform: scale(0.95); }
@@ -345,6 +375,7 @@
     <div class="container">
         <header class="header">
             <div class="header-left">
+                <img src="https://julianotimoteo.github.io/OS-CAMPO/logo-usina.png" alt="Logo" class="header-logo" />
                 <h1><span>🚜</span> Controle de Lavagem</h1>
                 <span class="header-time" id="headerTime">--:--</span>
                 <span class="header-shift" id="headerShift">Turno --</span>
@@ -352,6 +383,7 @@
             <div class="header-actions">
                 <button class="btn btn-load" id="btnNovoRegistro" title="Nova Colhedora">➕ <span>Nova</span></button>
                 <button class="btn btn-history" id="historyBtn" title="Histórico">📊 <span>Histórico</span></button>
+                <button class="btn btn-refresh" id="fullscreenBtn" title="Tela Cheia">🖥️ <span>Tela</span></button>
             </div>
         </header>
 
@@ -415,6 +447,9 @@
             <label>Data:</label>
             <input type="date" id="filterData" />
 
+            <label>🔍 Busca:</label>
+            <input type="text" id="searchInput" placeholder="Frota ou Frente..." autocomplete="off" />
+
             <button class="btn btn-filter" id="applyFilters">🔍 Filtrar</button>
             <button class="btn btn-clear" id="resetFilters" style="background:#e2e8f0;color:#2d3748;">↺ Hoje</button>
         </div>
@@ -428,10 +463,11 @@
                         <th>Turno</th>
                         <th>Data</th>
                         <th>Status</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="5" class="loading-msg pulse">⏳ Carregando dados...</td></tr>
+                    <tr><td colspan="6" class="loading-msg pulse">⏳ Carregando dados...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -454,6 +490,12 @@
                 <span class="icone">🔧</span>
                 <span class="texto">Enviar para a Oficina</span>
                 <span class="status-badge" id="oficinaStatus">Não</span>
+            </button>
+
+            <button type="button" class="btn-disable" id="btnDisableToggle" title="Desativar/Ativar Frente">
+                <span class="icone">🚫</span>
+                <span class="texto">Desativar Frente</span>
+                <span class="status-badge" id="disableStatus">Não</span>
             </button>
 
             <div class="modal-actions">
@@ -761,9 +803,15 @@
                 try {
                     const parsed = JSON.parse(salvoOriginais);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        registrosOriginais = parsed.map(r => ({ oficina: false, turno: null, ...r }));
+                        registrosOriginais = parsed.map(r => ({ ...r }));
                         aplicarFiltroDataAtual();
                         renderizarTudo();
+                        return true;
+                    }
+                } catch (e) {}
+            }
+            return false;
+        }
 
                         return true;
                     }
@@ -828,7 +876,7 @@
             const tbody = document.getElementById('tableBody');
 
             if (dados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="empty-msg">📋 Nenhum registro encontrado</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">📋 Nenhum registro encontrado</td></tr>`;
                 return;
             }
 
@@ -841,9 +889,10 @@
                 const statusLabel = r.oficina ? '🔧 —' : (r.status === 'OK' ? '✅ OK' : '❌ NÃOOK');
                 const statusCellClass = r.oficina ? 'status-cell disabled' : 'status-cell';
                 const onclick = r.oficina ? '' : `onclick="alternarStatus(${r.id})"`;
+                const desativadoBadge = r.desativado ? '<span class="desativado-badge">DESATIVADO</span>' : '';
 
                 return `
-                        <tr class="${r.oficina ? 'linha-oficina' : ''}">
+                        <tr class="${r.oficina ? 'linha-oficina' : ''} ${r.desativado ? 'linha-desativada' : ''}">
                             <td class="col-frente" title="${r.frente}">${r.frente}</td>
                             <td class="col-frota">
                                 <span class="frota-chip ${r.oficina ? 'oficina' : ''}">
@@ -853,9 +902,14 @@
                                 <button class="btn-editar-frota" onclick="abrirEdicaoFrota(${r.id})" title="Editar colhedora">📝</button>
                             </td>
                             <td class="col-turno">${turnoHtml}</td>
-                            <td class="col-data">${formatarData(r.data)}</td>
+                            <td class="col-data">${formatarData(r.data)} ${desativadoBadge}</td>
                             <td class="${statusCellClass}" ${onclick}>
                                 <span class="status-badge ${statusClass}" id="status-${r.id}">${statusLabel}</span>
+                            </td>
+                            <td class="col-acoes">
+                                <button class="btn-acao btn-toggle-frente" onclick="toggleDesativarFrente(${r.id})" title="${r.desativado ? 'Ativar' : 'Desativar'}">
+                                    ${r.desativado ? '✅' : '🚫'}
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -905,6 +959,8 @@
             if (f.status !== 'all') resultado = resultado.filter(r => r.status === f.status);
             if (f.frente !== 'all') resultado = resultado.filter(r => r.frente === f.frente);
 
+            resultado = resultado.filter(r => !r.desativado);
+
             resultado.sort((a, b) => a.frente.localeCompare(b.frente));
             return resultado;
         }
@@ -932,7 +988,7 @@
                 r.turno = null;
             } else {
                 r.status = 'OK';
-                r.turno = calcularTurnoPorHorario();
+                r.turno = turnoAnterior || calcularTurnoPorHorario();
                 r.data = getDataAtual();
             }
 
@@ -941,6 +997,7 @@
 
             salvarLocal();
             renderizarTudo();
+            lerGoogleSheets();
 
             // Salvar via iframe
             const payload = {
@@ -988,6 +1045,20 @@
             }, 1500);
         }
 
+        function toggleDesativarFrente(id) {
+            const r = registros.find(x => x.id === id);
+            if (!r) return;
+            
+            r.desativado = !r.desativado;
+            const rOrig = registrosOriginais.find(x => x.id === id);
+            if (rOrig) rOrig.desativado = r.desativado;
+            
+            salvarLocal();
+            renderizarTudo();
+            
+            mostrarToast(r.desativado ? '🚫 Frente desativada' : '✅ Frente ativada', 'info');
+        }
+
         function abrirEdicaoFrota(id) {
             const r = registros.find(item => item.id === id);
             if (!r) return;
@@ -1001,6 +1072,11 @@
             const statusBadge = document.getElementById('oficinaStatus');
             btnOficina.classList.toggle('ativo', !!r.oficina);
             statusBadge.textContent = !!r.oficina ? 'Sim' : 'Não';
+
+            const btnDisable = document.getElementById('btnDisableToggle');
+            const disableBadge = document.getElementById('disableStatus');
+            btnDisable.classList.toggle('ativo', !!r.desativado);
+            disableBadge.textContent = !!r.desativado ? 'Sim' : 'Não';
 
             const datalist = document.getElementById('listaFrentes');
             const frentes = [...new Set(registrosOriginais.map(x => x.frente))].sort();
@@ -1025,13 +1101,17 @@
             if (!frente) { mostrarToast('⚠️ Informe a frente', 'error'); return; }
             const btnOficina = document.getElementById('btnOficinaToggle');
             const oficina = btnOficina.classList.contains('ativo');
+            const btnDisable = document.getElementById('btnDisableToggle');
+            const desativado = btnDisable.classList.contains('ativo');
 
             r.frente = frente;
             r.oficina = oficina;
+            r.desativado = desativado;
             const rOrig = registrosOriginais.find(x => x.id === edicaoFrotaId);
-            if (rOrig) { rOrig.frente = frente; rOrig.oficina = oficina; }
+            if (rOrig) { rOrig.frente = frente; rOrig.oficina = oficina; rOrig.desativado = desativado; }
             salvarLocal();
             renderizarTudo();
+            lerGoogleSheets();
 
             const promises = [];
             if (frente !== r.frente) {
@@ -1273,6 +1353,17 @@
                 });
             }
 
+            const btnDisable = document.getElementById('btnDisableToggle');
+            if (btnDisable) {
+                btnDisable.addEventListener('click', function() {
+                    this.classList.toggle('ativo');
+                    const statusBadge = document.getElementById('disableStatus');
+                    if (statusBadge) {
+                        statusBadge.textContent = this.classList.contains('ativo') ? 'Sim' : 'Não';
+                    }
+                });
+            }
+
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const dataFiltro = document.getElementById('filterData').value;
                 registros = dataFiltro ? registrosOriginais.filter(r => r.data === dataFiltro) : [...registrosOriginais];
@@ -1298,9 +1389,76 @@
                 if (e.key === 'Escape') fecharModalFrota();
             });
 
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const searchText = this.value.trim().toLowerCase();
+                const dataFiltro = document.getElementById('filterData').value;
+                
+                let filtered = dataFiltro ? registrosOriginais.filter(r => r.data === dataFiltro) : [...registrosOriginais];
+                
+                if (searchText) {
+                    filtered = filtered.filter(r => 
+                        r.frota.toLowerCase().includes(searchText) ||
+                        r.frente.toLowerCase().includes(searchText)
+                    );
+                }
+                
+                registros = filtered;
+                renderizarTudo();
+            });
+
+            document.getElementById('applyFilters').addEventListener('click', function() {
+                const dataFiltro = document.getElementById('filterData').value;
+                const searchText = document.getElementById('searchInput').value.trim().toLowerCase();
+                
+                let filtered = dataFiltro ? registrosOriginais.filter(r => r.data === dataFiltro) : [...registrosOriginais];
+                
+                if (searchText) {
+                    filtered = filtered.filter(r => 
+                        r.frota.toLowerCase().includes(searchText) ||
+                        r.frente.toLowerCase().includes(searchText)
+                    );
+                }
+                
+                registros = filtered;
+                renderizarTudo();
+            });
+
+            document.getElementById('resetFilters').addEventListener('click', function() {
+                document.getElementById('filterTurno').value = 'all';
+                document.getElementById('filterStatus').value = 'all';
+                document.getElementById('filterFrente').value = 'all';
+                document.getElementById('filterData').value = getDataAtual();
+                document.getElementById('searchInput').value = '';
+                registros = registrosOriginais.filter(r => r.data === getDataAtual());
+                renderizarTudo();
+            });
+
             setInterval(function() {
                 atualizarHora();
             }, 30000);
+
+            let isFullscreen = false;
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', function() {
+                    isFullscreen = !isFullscreen;
+                    if (isFullscreen) {
+                        document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.();
+                        this.innerHTML = '🪟 <span>Sair</span>';
+                    } else {
+                        document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+                        this.innerHTML = '🖥️ <span>Tela</span>';
+                    }
+                });
+            }
+
+            document.addEventListener('fullscreenchange', function() {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    isFullscreen = false;
+                    const btn = document.getElementById('fullscreenBtn');
+                    if (btn) btn.innerHTML = '🖥️ <span>Tela</span>';
+                }
+            });
 
             let resizeTimeout;
             window.addEventListener('resize', function() {
