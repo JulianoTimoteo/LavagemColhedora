@@ -1610,7 +1610,7 @@
             let tableRows = '';
             registros.forEach((r, idx) => {
                 const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
-                    const statusText = r.oficina ? '🛠️ OFICINA' : r.desativada ? '🚫 DESATIVADA' : r.status === 'OK' ? '✅ OK' : '❌ NÃOOK';
+                const statusText = r.oficina ? '🛠️ OFICINA' : r.desativada ? '🚫 DESATIVADA' : r.status === 'OK' ? '✅ OK' : '❌ NÃOOK';
                 const turnoText = r.turno || '—';
                 const frente = escapeHtml(r.frente);
                 const frota = escapeHtml(r.frota);
@@ -1659,16 +1659,18 @@
                 '</tbody></table>' +
                 '</div></body></html>';
 
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'relatorio_lavagem_' + dataAtual + '.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            mostrarToast('📥 PDF exportado!', 'success');
+            const printWindow = window.open('', '_blank', 'width=1200,height=800');
+            if (!printWindow) {
+                mostrarToast('⚠️ Pop-up bloqueado. Permita pop-ups para exportar PDF.', 'error');
+                return;
+            }
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(function() {
+                printWindow.print();
+            }, 300);
+            mostrarToast('📄 PDF exportado!', 'success');
         }
 
         // ============================================================
