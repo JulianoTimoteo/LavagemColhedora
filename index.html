@@ -1276,145 +1276,52 @@
                 linhasPorFrente[r.frente].push(r);
             });
 
-            let html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Lavagem - ${dataAtual}</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f7fa;
-            color: #1a202c;
-            padding: 20px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .container { max-width: 420px; margin: 0 auto; }
-        h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; text-align: center; }
-        .subtitle { text-align: center; color: #718096; font-size: 12px; margin-bottom: 24px; }
-        .summary {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        .summary-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .summary-item:last-child { border-bottom: none; }
-        .summary-label { font-weight: 600; color: #4a5568; }
-        .summary-value { font-weight: 700; color: #1a202c; }
-        .frente-group {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        .frente-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 3px solid #1a202c;
-        }
-        .frota-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f7fafc;
-        }
-        .frota-item:last-child { border-bottom: none; }
-        .frota-name { font-weight: 600; font-size: 15px; }
-        .frota-status {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .status-ok { background: #c6f6d5; color: #22543d; }
-        .status-naook { background: #fed7d7; color: #822727; }
-        .status-oficina { background: #feebc8; color: #744210; }
-        .status-desativada { background: #e2e8f0; color: #4a5568; }
-        .turno-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 700;
-            margin-left: 6px;
-        }
-        .turno-a { background: #c6f6d5; color: #22543d; }
-        .turno-b { background: #bee3f8; color: #2a4365; }
-        .turno-c { background: #e9d8fd; color: #44337a; }
-        @media print {
-            body { padding: 0; background: white; }
-            .container { max-width: 100%; }
-            .frente-group { box-shadow: none; border: 1px solid #e2e8f0; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚜 Controle de Lavagem</h1>
-        <div class="subtitle">Relatório gerado em ${new Date().toLocaleString('pt-BR')} • Data operacional: ${formatarData(dataAtual)} • Turno: ${turnoAtual}</div>
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
 
-        <div class="summary">
-            <div class="summary-item">
-                <span class="summary-label">Total de Frotas</span>
-                <span class="summary-value">${total}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">✅ Lavadas</span>
-                <span class="summary-value">${ok}</span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">❌ Pendentes</span>
-                <span class="summary-value">${naook}</span>
-            </div>
-            ${emOficina > 0 ? `<div class="summary-item">
-                <span class="summary-label">🔧 Na Oficina</span>
-                <span class="summary-value">${emOficina}</span>
-            </div>` : ''}
-            ${desativadas > 0 ? `<div class="summary-item">
-                <span class="summary-label">🚫 Desativadas</span>
-                <span class="summary-value">${desativadas}</span>
-            </div>` : ''}
-        </div>
+            function gerarBlocoFrente(frente, frotas) {
+                const linhas = frotas.sort((a, b) => a.frota.localeCompare(b.frota)).map(r => {
+                    const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
+                    const statusText = r.oficina ? 'OFICINA' : r.desativada ? 'DESATIVADA' : r.status === 'OK' ? 'OK' : 'NÃOOK';
+                    const turnoHtml = r.turno ? '<span class="turno-badge turno-' + r.turno.toLowerCase() + '">' + escapeHtml(r.turno) + '</span>' : '';
+                    return '<div class="frota-item"><span class="frota-name">' + escapeHtml(r.frota) + ' ' + turnoHtml + '</span><span class="frota-status ' + statusClass + '">' + statusText + '</span></div>';
+                }).join('');
+                return '<div class="frente-group"><div class="frente-title">' + escapeHtml(frente) + '</div>' + linhas + '</div>';
+            }
 
-        ${Object.entries(linhasPorFrente).sort((a,b) => a[0].localeCompare(b[0])).map(([frente, frotas]) => `
-            <div class="frente-group">
-                <div class="frente-title">${frente}</div>
-                ${frotas.sort((a,b) => a.frota.localeCompare(b.frota)).map(r => `
-                    <div class="frota-item">
-                        <span class="frota-name">${r.frota} ${r.turno ? `<span class="turno-badge turno-${r.turno.toLowerCase()}">${r.turno}</span>` : ''}</span>
-                        <span class="frota-status ${r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook'}">
-                            ${r.oficina ? 'OFICINA' : r.desativada ? 'DESATIVADA' : r.status === 'OK' ? 'OK' : 'NÃOOK'}
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        `).join('')}
-    </div>
+            const frentesOrdenadas = Object.keys(linhasPorFrente).sort();
+            const blocos = frentesOrdenadas.map(f => gerarBlocoFrente(f, linhasPorFrente[f])).join('');
 
-    <script>
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-            }, 500);
-        };
-    </script>
-</body>
-</html>`;
+            const html = '<!DOCTYPE html>' +
+                '<html lang="pt-BR">' +
+                '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Relatório de Lavagem - ' + escapeHtml(dataAtual) + '</title><style>' +
+                '*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f5f7fa;color:#1a202c;padding:20px;font-size:14px;line-height:1.6}' +
+                '.container{max-width:420px;margin:0 auto}h1{font-size:22px;font-weight:800;margin-bottom:8px;text-align:center}' +
+                '.subtitle{text-align:center;color:#718096;font-size:12px;margin-bottom:24px}' +
+                '.summary{background:white;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
+                '.summary-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #e2e8f0}.summary-item:last-child{border-bottom:none}' +
+                '.summary-label{font-weight:600;color:#4a5568}.summary-value{font-weight:700;color:#1a202c}' +
+                '.frente-group{background:white;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
+                '.frente-title{font-size:16px;font-weight:700;color:#2d3748;margin-bottom:12px;padding-bottom:8px;border-bottom:3px solid #1a202c}' +
+                '.frota-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f7fafc}.frota-item:last-child{border-bottom:none}' +
+                '.frota-name{font-weight:600;font-size:15px}.frota-status{padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700}' +
+                '.status-ok{background:#c6f6d5;color:#22543d}.status-naook{background:#fed7d7;color:#822727}.status-oficina{background:#feebc8;color:#744210}.status-desativada{background:#e2e8f0;color:#4a5568}' +
+                '.turno-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-left:6px}' +
+                '.turno-a{background:#c6f6d5;color:#22543d}.turno-b{background:#bee3f8;color:#2a4365}.turno-c{background:#e9d8fd;color:#44337a}' +
+                '@media print{body{padding:0;background:white}.container{max-width:100%}.frente-group{box-shadow:none;border:1px solid #e2e8f0}}' +
+                '</style></head><body><div class="container">' +
+                '<h1>🚜 Controle de Lavagem</h1>' +
+                '<div class="subtitle">Relatório gerado em ' + new Date().toLocaleString('pt-BR') + ' • Data operacional: ' + escapeHtml(dataAtual) + ' • Turno: ' + escapeHtml(turnoAtual) + '</div>' +
+                '<div class="summary">' +
+                '<div class="summary-item"><span class="summary-label">Total de Frotas</span><span class="summary-value">' + total + '</span></div>' +
+                '<div class="summary-item"><span class="summary-label">✅ Lavadas</span><span class="summary-value">' + ok + '</span></div>' +
+                '<div class="summary-item"><span class="summary-label">❌ Pendentes</span><span class="summary-value">' + naook + '</span></div>' +
+                (emOficina > 0 ? '<div class="summary-item"><span class="summary-label">🔧 Na Oficina</span><span class="summary-value">' + emOficina + '</span></div>' : '') +
+                (desativadas > 0 ? '<div class="summary-item"><span class="summary-label">🚫 Desativadas</span><span class="summary-value">' + desativadas + '</span></div>' : '') +
+                '</div>' + blocos + '</div></body></html>';
 
             const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
