@@ -77,8 +77,9 @@ function doGet(e) {
     }
 
     for (const { frente, frota, dados: linha } of linhas) {
+      const turno = linha.length > 2 ? String(linha[2] || '').trim() : '';
       let achouHoje = false;
-      for (let j = 2; j < linha.length; j++) {
+      for (let j = 3; j < linha.length; j++) {
         const valor = String(linha[j] || '').trim().toUpperCase();
         if (!valor) continue;
         if (valor === 'DESATIVADA') continue;
@@ -91,7 +92,7 @@ function doGet(e) {
             id: id++,
             frente,
             frota,
-            turno: null,
+            turno: turno || null,
             data: dataCol,
             status: normalizarStatus(valor),
             oficina: valor === 'OFICINA'
@@ -106,7 +107,7 @@ function doGet(e) {
             id: id++,
             frente,
             frota,
-            turno: null,
+            turno: turno || null,
             data: hoje,
             status: 'NAOOK',
             oficina: false
@@ -340,10 +341,21 @@ function encontrarLinhaFrota(sheet, frota) {
   return -1;
 }
 
+function garantirColunaTurno(sheet) {
+  if (!sheet) return 2;
+  const cabecalho = sheet.getDataRange().getValues()[0];
+  if (cabecalho.length >= 3 && String(cabecalho[2] || '').trim().toUpperCase() === 'TURNO') {
+    return 3;
+  }
+  sheet.insertColumnAfter(2);
+  sheet.getRange(1, 3).setValue('TURNO');
+  return 3;
+}
+
 function encontrarColunaData(sheet, data) {
   const cabecalho = sheet.getDataRange().getValues()[0];
   const dataAlvo = normalizarData_(data);
-  for (let i = 2; i < cabecalho.length; i++) {
+  for (let i = 3; i < cabecalho.length; i++) {
     const nomeCol = String(cabecalho[i] || '').trim();
     const dataCol = converterNomeColunaParaData(nomeCol);
     if (dataCol === dataAlvo) {
@@ -357,7 +369,7 @@ function garantirColunaData(sheet, data) {
   let col = encontrarColunaData(sheet, data);
   if (col !== -1) return col;
   const cabecalho = sheet.getDataRange().getValues()[0];
-  const ultimaCol = cabecalho.length || 2;
+  const ultimaCol = cabecalho.length || 3;
   const dataAlvo = normalizarData_(data);
   const partes = dataAlvo.split('-');
   const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -366,11 +378,17 @@ function garantirColunaData(sheet, data) {
   return ultimaCol + 1;
 }
 
-function garantirLinhaFrota(sheet, frota, frente) {
+function garantirLinhaFrota(sheet, frota, frente, turno) {
   let linha = encontrarLinhaFrota(sheet, frota);
-  if (linha !== -1) return linha;
+  if (linha !== -1) {
+    if (turno) {
+      const colunaTurno = garantirColunaTurno(sheet);
+      sheet.getRange(linha, colunaTurno).setValue(turno);
+    }
+    return linha;
+  }
   const ultimaLinha = sheet.getLastRow();
-  sheet.appendRow([frente || 'FRENTE - 08', frota]);
+  sheet.appendRow([frente || 'FRENTE - 08', frota, turno || '']);
   return ultimaLinha + 1;
 }
 
@@ -416,7 +434,7 @@ function normalizarPlanilha(sheet) {
   }
 }
 
-function atualizarStatus(sheet, dados) {
+  function atualizarStatus(sheet, dados) {
   try {
     const { frota, data, status, turno, frente } = dados;
     if (ehMais48h(data)) {
@@ -426,6 +444,12 @@ function atualizarStatus(sheet, dados) {
     const col = garantirColunaData(sheet, data);
     const valor = normalizarStatus(status);
     sheet.getRange(linha, col).setValue(valor);
+
+    if (turno) {
+      const colunaTurno = garantirColunaTurno(sheet);
+      sheet.getRange(linha, colunaTurno).setValue(turno);
+    }
+
     return { sucesso: true, mensagem: `Status de ${frota} para ${data} atualizado para ${status}` };
   } catch (erro) {
     return { sucesso: false, erro: erro.toString() };

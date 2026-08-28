@@ -29,8 +29,8 @@
         }
         .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .header-logo {
-            height: 128px;
-            width: 256px;
+            height: 256px;
+            width: 768px;
             border-radius: 16px;
             object-fit: contain;
             background: white;
@@ -216,40 +216,115 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             z-index: 999;
             justify-content: center;
             align-items: center;
             padding: 16px;
             animation: fadeIn 0.2s ease;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
         .modal-overlay.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .modal {
             background: white;
-            padding: 24px 20px;
-            border-radius: 16px;
+            padding: 28px 24px;
+            border-radius: 20px;
             max-width: 420px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.35);
             animation: slideUp 0.3s ease;
         }
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal h3 { margin-bottom: 16px; color: #1a202c; font-size: 18px; font-weight: 700; }
-        .modal .info-row { background: #f7fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
-        .modal .info-row strong { color: #2b6cb0; }
-        .modal label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: 13px; color: #2d3748; }
-        .modal select, .modal input { width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; -webkit-appearance: none; appearance: none; }
-        .modal select:focus, .modal input:focus { border-color: #2b6cb0; outline: none; }
-        .modal .switch-row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding: 10px 14px; background: #f7fafc; border-radius: 8px; }
-        .modal .switch-row span { font-weight: 600; font-size: 13px; color: #2d3748; }
-        .modal .switch-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #e53e3e; }
-        .modal .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
-        .modal .btn-group button { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; touch-action: manipulation; }
+        .modal h3 { margin-bottom: 16px; color: #1a202c; font-size: 20px; font-weight: 700; }
+        .modal .info-row {
+            background: #f7fafc;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #2b6cb0;
+        }
+        .modal .info-row strong { color: #2b6cb0; font-size: 16px; }
+        .modal label { display: block; margin: 14px 0 6px; font-weight: 600; font-size: 13px; color: #2d3748; text-transform: uppercase; letter-spacing: 0.05em; }
+        .modal input[type="text"] { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 15px; background: white; transition: border-color 0.2s; }
+        .modal input[type="text"]:focus { border-color: #2b6cb0; outline: none; }
+        .modal .oficina-section {
+            margin-top: 18px;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .modal .oficina-section.active {
+            background: #fff5f5;
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+        }
+        .modal .oficina-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .modal .oficina-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #2d3748;
+        }
+        .modal .oficina-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        .oficina-badge.inactive { background: #edf2f7; color: #718096; }
+        .oficina-badge.active { background: #e53e3e; color: white; animation: pulseBadge 1.3s ease-in-out infinite; }
+        @keyframes pulseBadge { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.55); } 50% { box-shadow: 0 0 0 8px rgba(229,62,62,0); } }
+        .modal .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .modal .switch input { opacity: 0; width: 0; height: 0; }
+        .modal .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+        .modal .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .modal input:checked + .slider { background-color: #e53e3e; }
+        .modal input:checked + .slider:before { transform: translateX(24px); }
+        .modal .btn-group { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; flex-wrap: wrap; }
+        .modal .btn-group button { padding: 12px 28px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; touch-action: manipulation; }
         .modal .btn-group button:active { transform: scale(0.95); }
         .modal .btn-save { background: #2b6cb0; color: white; }
         .modal .btn-save:hover { background: #1a365d; }
@@ -283,7 +358,7 @@
         @media (max-width: 480px) {
             body { padding: 6px; padding-bottom: 80px; }
             .header { padding: 8px 10px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 13px; }
             .header-time { font-size: 9px; padding: 2px 6px; }
             .btn { font-size: 9px; padding: 3px 6px; min-height: 24px; }
@@ -316,7 +391,7 @@
         @media (min-width: 481px) and (max-width: 640px) {
             body { padding: 10px; padding-bottom: 80px; }
             .header { padding: 12px 14px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 15px; }
             .btn { font-size: 10px; padding: 4px 8px; min-height: 28px; }
             .header-actions .btn span { display: none; }
@@ -332,7 +407,7 @@
         @media (min-width: 641px) and (max-width: 768px) {
             body { padding: 14px; padding-bottom: 80px; }
             .header { padding: 14px 18px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 17px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -343,7 +418,7 @@
         @media (min-width: 769px) and (max-width: 1024px) {
             body { padding: 16px; }
             .header { padding: 16px 20px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 18px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -354,7 +429,7 @@
         @media (min-width: 1025px) and (max-width: 1280px) {
             body { padding: 20px; padding-bottom: 40px; }
             .header { padding: 18px 24px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 20px; }
             .btn { padding: 7px 16px; font-size: 12px; min-height: 36px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -382,7 +457,7 @@
         @media (min-width: 1281px) and (max-width: 1536px) {
             body { padding: 24px; padding-bottom: 40px; }
             .header { padding: 20px 28px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 22px; }
             .btn { padding: 8px 18px; font-size: 13px; min-height: 38px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -410,7 +485,7 @@
         @media (min-width: 1537px) {
             body { padding: 28px; padding-bottom: 40px; }
             .header { padding: 24px 32px; }
-            .header-logo { height: 32px; width: 64px; }
+            .header-logo { height: 64px; width: 192px; }
             .header-left h1 { font-size: 24px; }
             .btn { padding: 10px 22px; font-size: 14px; min-height: 42px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -552,18 +627,32 @@
         <div class="modal">
             <h3 id="modalFrotaTitle">📝 Editar Colhedora</h3>
             <div class="info-row" id="modalFrotaInfo">
-                <strong id="modalFrotaNumero">-</strong> - <span id="modalFrotaFrenteAtual">-</span>
+                <span>Frota</span>
+                <strong id="modalFrotaNumero">-</strong>
+                <span id="modalFrotaFrenteAtual" style="color:#718096;font-size:12px;">-</span>
             </div>
             <label>Frente:</label>
             <input type="text" id="modalFrotaFrente" placeholder="Ex: FRENTE - 08" list="listaFrentes" />
             <datalist id="listaFrentes"></datalist>
 
-            <div class="switch-row">
-                <span>🔧 Enviar para a Oficina</span>
-                <input type="checkbox" id="modalFrotaOficina" />
+            <div class="oficina-section" id="oficinaSection">
+                <div class="oficina-header">
+                    <div class="oficina-title">
+                        <span>🛠️</span>
+                        <span>Enviar para a Oficina</span>
+                    </div>
+                    <span class="oficina-badge inactive" id="oficinaBadge">Inativo</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                    <span style="font-size:13px;color:#718096;">Ativar modo oficina</span>
+                    <label class="switch">
+                        <input type="checkbox" id="modalFrotaOficina" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
 
-            <div class="switch-row">
+            <div class="switch-row" style="margin-top:12px;">
                 <span>🚫 Desativar Frente</span>
                 <input type="checkbox" id="modalFrotaDesativar" />
             </div>
@@ -1150,12 +1239,31 @@
             document.getElementById('modalFrotaOficina').checked = !!r.oficina;
             document.getElementById('modalFrotaDesativar').checked = !!r.desativada;
 
+            atualizarOficinaUI();
+
             const datalist = document.getElementById('listaFrentes');
             const frentes = [...new Set(registrosOriginais.map(x => x.frente))].sort();
             datalist.innerHTML = frentes.map(f => `<option value="${f}"></option>`).join('');
 
             document.getElementById('modalFrota').classList.add('active');
             document.body.style.overflow = 'hidden';
+        }
+
+        function atualizarOficinaUI() {
+            const checked = document.getElementById('modalFrotaOficina').checked;
+            const section = document.getElementById('oficinaSection');
+            const badge = document.getElementById('oficinaBadge');
+            if (checked) {
+                section.classList.add('active');
+                badge.classList.remove('inactive');
+                badge.classList.add('active');
+                badge.textContent = 'ATIVO';
+            } else {
+                section.classList.remove('active');
+                badge.classList.remove('active');
+                badge.classList.add('inactive');
+                badge.textContent = 'Inativo';
+            }
         }
 
         function fecharModalFrota() {
@@ -1636,6 +1744,7 @@
             document.getElementById('modalFrota').addEventListener('click', function(e) {
                 if (e.target === this) fecharModalFrota();
             });
+            document.getElementById('modalFrotaOficina').addEventListener('change', atualizarOficinaUI);
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') fecharModalFrota();
             });
