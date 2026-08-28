@@ -29,9 +29,9 @@
         }
         .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .header-logo {
-            height: 192px;
-            width: 192px;
-            border-radius: 24px;
+            height: 128px;
+            width: 256px;
+            border-radius: 16px;
             object-fit: contain;
             background: white;
             flex-shrink: 0;
@@ -283,7 +283,7 @@
         @media (max-width: 480px) {
             body { padding: 6px; padding-bottom: 80px; }
             .header { padding: 8px 10px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 13px; }
             .header-time { font-size: 9px; padding: 2px 6px; }
             .btn { font-size: 9px; padding: 3px 6px; min-height: 24px; }
@@ -316,7 +316,7 @@
         @media (min-width: 481px) and (max-width: 640px) {
             body { padding: 10px; padding-bottom: 80px; }
             .header { padding: 12px 14px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 15px; }
             .btn { font-size: 10px; padding: 4px 8px; min-height: 28px; }
             .header-actions .btn span { display: none; }
@@ -332,7 +332,7 @@
         @media (min-width: 641px) and (max-width: 768px) {
             body { padding: 14px; padding-bottom: 80px; }
             .header { padding: 14px 18px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 17px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -343,7 +343,7 @@
         @media (min-width: 769px) and (max-width: 1024px) {
             body { padding: 16px; }
             .header { padding: 16px 20px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 18px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -354,7 +354,7 @@
         @media (min-width: 1025px) and (max-width: 1280px) {
             body { padding: 20px; padding-bottom: 40px; }
             .header { padding: 18px 24px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 20px; }
             .btn { padding: 7px 16px; font-size: 12px; min-height: 36px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -382,7 +382,7 @@
         @media (min-width: 1281px) and (max-width: 1536px) {
             body { padding: 24px; padding-bottom: 40px; }
             .header { padding: 20px 28px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 22px; }
             .btn { padding: 8px 18px; font-size: 13px; min-height: 38px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -410,7 +410,7 @@
         @media (min-width: 1537px) {
             body { padding: 28px; padding-bottom: 40px; }
             .header { padding: 24px 32px; }
-            .header-logo { height: 32px; width: 32px; }
+            .header-logo { height: 32px; width: 64px; }
             .header-left h1 { font-size: 24px; }
             .btn { padding: 10px 22px; font-size: 14px; min-height: 42px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
