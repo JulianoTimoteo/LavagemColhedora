@@ -1451,6 +1451,16 @@
                 salvarBancoLocal(novoBanco);
 
                 statusText.innerHTML = `✅ <span class="ok">Sincronizado: ${atualizados} atualizados, ${novos} novos</span>`;
+
+                const blobBanco = new Blob([JSON.stringify(novoBanco, null, 2)], { type: 'application/json;charset=utf-8;' });
+                const urlBanco = URL.createObjectURL(blobBanco);
+                const aBanco = document.createElement('a');
+                aBanco.href = urlBanco;
+                aBanco.download = 'banco_lavagem_sync_' + getDataAtual() + '.json';
+                document.body.appendChild(aBanco);
+                aBanco.click();
+                document.body.removeChild(aBanco);
+                URL.revokeObjectURL(urlBanco);
             };
 
             const script = document.createElement('script');
@@ -1542,26 +1552,6 @@
                 tableRows +
                 '</tbody></table>' +
                 '</div></body></html>';
-
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'relatorio_lavagem_' + dataAtual + '.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            const win = window.open(url, '_blank');
-            if (win) {
-                win.focus();
-                setTimeout(function() {
-                    win.print();
-                }, 600);
-            } else {
-                mostrarToast('⚠️ Pop-up bloqueado. Permita pop-ups para exportar.', 'error');
-            }
-        }
 
             const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
