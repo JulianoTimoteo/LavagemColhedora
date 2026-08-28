@@ -61,6 +61,8 @@
         .btn:active { transform: scale(0.95); }
         .btn-export { background: #ed8936; color: white; }
         .btn-export:hover { background: #dd6b20; }
+        .btn-bank { background: #805ad5; color: white; }
+        .btn-bank:hover { background: #6b46c1; }
         .btn-filter { background: #4299e1; color: white; }
         .btn-filter:hover { background: #3182ce; }
 
@@ -446,6 +448,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-export" id="exportPdfBtn" title="Exportar PDF">📄 <span>EXPORTAR PDF</span></button>
+                <button class="btn btn-bank" id="bancoLocalBtn" title="Banco Local">💾 <span>BANCO LOCAL</span></button>
             </div>
         </header>
 
@@ -840,12 +843,34 @@
         }
 
         function carregarDadosSalvos() {
+            const banco = getBancoLocal();
+            if (banco && banco.registros && banco.registros.length > 0) {
+                registrosOriginais = banco.registros.map(r => ({
+                    id: r.id,
+                    frente: r.frente.trim(),
+                    frota: r.frota.trim(),
+                    turno: r.turno || null,
+                    data: r.data || getDataAtual(),
+                    status: r.status || 'NAOOK',
+                    oficina: !!r.oficina,
+                    desativada: !!r.desativada
+                }));
+                salvarLocal();
+                aplicarFiltroDataAtual();
+                renderizarTudo();
+                const lastSync = banco.lastSync ? new Date(banco.lastSync).toLocaleString('pt-BR') : 'desconhecido';
+                document.getElementById('statusText').innerHTML =
+                    `📂 <span class="info">${registrosOriginais.length} registros locais (banco: ${lastSync})</span>`;
+                return true;
+            }
+
             const salvoOriginais = localStorage.getItem('lavagemDadosOriginais');
             if (salvoOriginais) {
                 try {
                     const parsed = JSON.parse(salvoOriginais);
                     if (Array.isArray(parsed) && parsed.length > 0) {
                         registrosOriginais = parsed.map(r => ({ oficina: false, turno: null, desativada: false, ...r }));
+                        salvarLocal();
                         aplicarFiltroDataAtual();
                         renderizarTudo();
                         document.getElementById('statusText').innerHTML =
@@ -1256,41 +1281,189 @@
             mostrarToast('🗑️ Cache local limpo', 'info');
         }
 
-        function exportarPDF() {
-            if (registros.length === 0) { mostrarToast('Sem dados para exportar', 'error'); return; }
+        // ============================================================
+        //  BANCO LOCAL JSON
+        // ============================================================
+        function getDeviceId() {
+            let id = localStorage.getItem('lavagemDeviceId');
+            if (!id) {
+                id = 'device_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('lavagemDeviceId', id);
+            }
+            return id;
+        }
 
-            const dataAtual = getDataAtual();
-            const turnoAtual = calcularTurnoPorHorario();
-            const total = registros.length;
-            const ok = registros.filter(r => r.status === 'OK').length;
-            const naook = registros.filter(r => r.status === 'NAOOK').length;
-            const emOficina = registros.filter(r => r.oficina).length;
-            const desativadas = registros.filter(r => r.desativada).length;
+        function getBancoLocal() {
+            try {
+                const data = localStorage.getItem('lavagemBancoLocal');
+                return data ? JSON.parse(data) : null;
+            } catch (e) { return null; }
+        }
 
-            const linhasPorFrente = {};
-            registros.forEach(r => {
-                if (!linhasPorFrente[r.frente]) linhasPorFrente[r.frente] = [];
-                linhasPorFrente[r.frente].push(r);
-            });
+        function salvarBancoLocal(banco) {
+            try {
+                localStorage.setItem('lavagemBancoLocal', JSON.stringify(banco));
+            } catch (e) {
+                mostrarToast('⚠️ Erro ao salvar banco local', 'error');
+            }
+        }
 
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
+        function baixarBancoLocal() {
+            if (registros.length === 0) { mostrarToast('Sem dados para baixar', 'error'); return; }
+
+            const banco = {
+                version: '1.0',
+                deviceId: getDeviceId(),
+                lastSync: new Date().toISOString(),
+                registros: registrosOriginais.map(r => ({
+                    ...r,
+                    updatedAt: new Date().toISOString()
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(banco, null, 2)], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'banco_lavagem_' + getDataAtual() + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            localStorage.setItem('lavagemLastSync', banco.lastSync);
+            mostrarToast('💾 Banco local baixado!', 'success');
+        }
+
+        function importarBancoLocal() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const banco = JSON.parse(event.target.result);
+                        if (!banco.registros || !Array.isArray(banco.registros)) {
+                            mostrarToast('❌ Arquivo inválido', 'error');
+                            return;
+                        }
+
+                        registrosOriginais = banco.registros.map(r => ({
+                            id: r.id,
+                            frente: r.frente.trim(),
+                            frota: r.frota.trim(),
+                            turno: r.turno || null,
+                            data: r.data || getDataAtual(),
+                            status: r.status || 'NAOOK',
+                            oficina: !!r.oficina,
+                            desativada: !!r.desativada
+                        }));
+
+                        salvarLocal();
+                        salvarBancoLocal(banco);
+                        aplicarFiltroDataAtual();
+                        renderizarTudo();
+                        mostrarToast('📥 Banco local importado!', 'success');
+                    } catch (err) {
+                        mostrarToast('❌ Erro ao ler arquivo', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function sincronizarIncremental() {
+            const bancoLocal = getBancoLocal();
+            const lastSync = bancoLocal ? bancoLocal.lastSync : null;
+
+            if (!lastSync) {
+                lerGoogleSheets();
+                return;
             }
 
-            function gerarBlocoFrente(frente, frotas) {
-                const linhas = frotas.sort((a, b) => a.frota.localeCompare(b.frota)).map(r => {
-                    const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
-                    const statusText = r.oficina ? 'OFICINA' : r.desativada ? 'DESATIVADA' : r.status === 'OK' ? 'OK' : 'NÃOOK';
-                    const turnoHtml = r.turno ? '<span class="turno-badge turno-' + r.turno.toLowerCase() + '">' + escapeHtml(r.turno) + '</span>' : '';
-                    return '<div class="frota-item"><span class="frota-name">' + escapeHtml(r.frota) + '</span>' + turnoHtml + '<span class="status-badge ' + statusClass + '">' + statusText + '</span></div>';
-                }).join('');
-                return '<div class="frente-group"><h3>' + escapeHtml(frente) + '</h3>' + linhas + '</div>';
-            }
+            statusText.innerHTML = '🔄 <span class="loading">Sincronizando...</span>';
 
-            const frentesOrdenadas = Object.keys(linhasPorFrente).sort();
-            const blocos = frentesOrdenadas.map(f => gerarBlocoFrente(f, linhasPorFrente[f])).join('');
+            const callbackName = 'jsonpCallback_' + Date.now();
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+
+                if (data.erro || !data.dados || data.dados.length === 0) {
+                    statusText.innerHTML = '✅ <span class="ok">Dados locais atualizados</span>';
+                    return;
+                }
+
+                const dadosServidor = data.dados.map(r => ({
+                    ...r,
+                    updatedAt: new Date().toISOString()
+                }));
+
+                const localMap = new Map();
+                registrosOriginais.forEach(r => localMap.set(r.id, r));
+
+                let atualizados = 0;
+                let novos = 0;
+
+                dadosServidor.forEach(r => {
+                    const local = localMap.get(r.id);
+                    if (!local) {
+                        registrosOriginais.push({
+                            id: r.id,
+                            frente: r.frente.trim(),
+                            frota: r.frota.trim(),
+                            turno: r.turno || null,
+                            data: r.data || getDataAtual(),
+                            status: r.status || 'NAOOK',
+                            oficina: !!r.oficina,
+                            desativada: !!r.desativada
+                        });
+                        novos++;
+                    } else if (r.updatedAt > local.updatedAt) {
+                        local.frente = r.frente.trim();
+                        local.frota = r.frota.trim();
+                        local.turno = r.turno || null;
+                        local.data = r.data || getDataAtual();
+                        local.status = r.status || 'NAOOK';
+                        local.oficina = !!r.oficina;
+                        local.desativada = !!r.desativada;
+                        local.updatedAt = r.updatedAt;
+                        atualizados++;
+                    }
+                });
+
+                if (atualizados > 0 || novos > 0) {
+                    salvarLocal();
+                    aplicarFiltroDataAtual();
+                    renderizarTudo();
+                }
+
+                const novoBanco = {
+                    version: '1.0',
+                    deviceId: getDeviceId(),
+                    lastSync: new Date().toISOString(),
+                    registros: registrosOriginais.map(r => ({ ...r, updatedAt: r.updatedAt || new Date().toISOString() }))
+                };
+                salvarBancoLocal(novoBanco);
+
+                statusText.innerHTML = `✅ <span class="ok">Sincronizado: ${atualizados} atualizados, ${novos} novos</span>`;
+            };
+
+            const script = document.createElement('script');
+            script.src = CONFIG.webAppUrl + '?callback=' + callbackName + '&since=' + encodeURIComponent(lastSync);
+            script.onerror = function() {
+                carregando = false;
+                delete window[callbackName];
+                document.body.removeChild(script);
+                statusText.innerHTML = `❌ <span class="erro">Erro de conexão</span>`;
+                if (!carregarDadosSalvos()) carregarDadosExemplo();
+            };
+            document.body.appendChild(script);
+        }
 
         function exportarPDF() {
             if (registros.length === 0) { mostrarToast('Sem dados para exportar', 'error'); return; }
@@ -1447,7 +1620,7 @@
             carregarDadosSalvos();
             
             setTimeout(function() {
-                lerGoogleSheets();
+                sincronizarIncremental();
             }, 500);
 
             document.getElementById('filtersToggle').addEventListener('click', function() {
@@ -1456,6 +1629,12 @@
             });
 
             document.getElementById('exportPdfBtn').addEventListener('click', exportarPDF);
+            document.getElementById('bancoLocalBtn').addEventListener('click', function() {
+                const acao = prompt('Digite:\n1 - Baixar banco local\n2 - Importar banco local\n3 - Sincronizar agora');
+                if (acao === '1') baixarBancoLocal();
+                else if (acao === '2') importarBancoLocal();
+                else if (acao === '3') sincronizarIncremental();
+            });
 
             document.getElementById('applyFilters').addEventListener('click', function() {
                 const dataFiltro = document.getElementById('filterData').value;
