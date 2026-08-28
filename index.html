@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1a365d">
-    <link rel="icon" type="image/x-icon" href="favicons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
-    <link rel="manifest" href="favicons/android-chrome-192x192.png">
     <title>🚜 Controle de Lavagem</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -1287,9 +1282,9 @@
                     const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
                     const statusText = r.oficina ? 'OFICINA' : r.desativada ? 'DESATIVADA' : r.status === 'OK' ? 'OK' : 'NÃOOK';
                     const turnoHtml = r.turno ? '<span class="turno-badge turno-' + r.turno.toLowerCase() + '">' + escapeHtml(r.turno) + '</span>' : '';
-                    return '<div class="frota-item"><span class="frota-name">' + escapeHtml(r.frota) + ' ' + turnoHtml + '</span><span class="frota-status ' + statusClass + '">' + statusText + '</span></div>';
+                    return '<tr><td>' + escapeHtml(r.frota) + '</td><td>' + turnoHtml + '</td><td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td></tr>';
                 }).join('');
-                return '<div class="frente-group"><div class="frente-title">' + escapeHtml(frente) + '</div>' + linhas + '</div>';
+                return '<div class="frente-group"><h3>' + escapeHtml(frente) + '</h3><table><tbody>' + linhas + '</tbody></table></div>';
             }
 
             const frentesOrdenadas = Object.keys(linhasPorFrente).sort();
@@ -1297,37 +1292,49 @@
 
             const html = '<!DOCTYPE html>' +
                 '<html lang="pt-BR">' +
-                '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Relatório de Lavagem - ' + escapeHtml(dataAtual) + '</title><style>' +
-                '*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f5f7fa;color:#1a202c;padding:20px;font-size:14px;line-height:1.6}' +
-                '.container{max-width:420px;margin:0 auto}h1{font-size:22px;font-weight:800;margin-bottom:8px;text-align:center}' +
-                '.subtitle{text-align:center;color:#718096;font-size:12px;margin-bottom:24px}' +
-                '.summary{background:white;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
-                '.summary-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #e2e8f0}.summary-item:last-child{border-bottom:none}' +
-                '.summary-label{font-weight:600;color:#4a5568}.summary-value{font-weight:700;color:#1a202c}' +
-                '.frente-group{background:white;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
-                '.frente-title{font-size:16px;font-weight:700;color:#2d3748;margin-bottom:12px;padding-bottom:8px;border-bottom:3px solid #1a202c}' +
-                '.frota-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f7fafc}.frota-item:last-child{border-bottom:none}' +
-                '.frota-name{font-weight:600;font-size:15px}.frota-status{padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700}' +
+                '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Relatorio Lavagem - ' + escapeHtml(dataAtual) + '</title><style>' +
+                '*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f0f4f8;color:#1a202c;padding:24px;font-size:14px;line-height:1.5}' +
+                '.container{max-width:1100px;margin:0 auto}h1{font-size:26px;font-weight:800;margin-bottom:8px;text-align:center}' +
+                '.subtitle{text-align:center;color:#718096;font-size:13px;margin-bottom:24px}' +
+                '.summary{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}' +
+                '.card{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,0.06);border-left:4px solid #2b6cb0;text-align:center}' +
+                '.card.ok{border-left-color:#38a169}.card.naook{border-left-color:#e53e3e}.card.oficina{border-left-color:#ed8936}.card.desativada{border-left-color:#a0aec0}.card.total{border-left-color:#2b6cb0}' +
+                '.card .label{font-size:11px;color:#718096;text-transform:uppercase;font-weight:700;margin-bottom:4px}' +
+                '.card .value{font-size:26px;font-weight:800;color:#1a202c}' +
+                '.frente-group{background:white;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}' +
+                '.frente-group h3{font-size:16px;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:3px solid #1a202c}' +
+                '.frente-group table{width:100%;border-collapse:collapse;font-size:13px}' +
+                '.frente-group th{text-align:left;padding:8px;border-bottom:2px solid #e2e8f0;color:#4a5568;font-weight:600}' +
+                '.frente-group td{padding:10px 8px;border-bottom:1px solid #f7fafc}' +
+                '.frente-group tr:last-child td{border-bottom:none}' +
+                '.frota-name{font-weight:700;font-size:14px}' +
+                '.status-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700}' +
                 '.status-ok{background:#c6f6d5;color:#22543d}.status-naook{background:#fed7d7;color:#822727}.status-oficina{background:#feebc8;color:#744210}.status-desativada{background:#e2e8f0;color:#4a5568}' +
                 '.turno-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-left:6px}' +
                 '.turno-a{background:#c6f6d5;color:#22543d}.turno-b{background:#bee3f8;color:#2a4365}.turno-c{background:#e9d8fd;color:#44337a}' +
                 '@media print{body{padding:0;background:white}.container{max-width:100%}.frente-group{box-shadow:none;border:1px solid #e2e8f0}}' +
                 '</style></head><body><div class="container">' +
                 '<h1>🚜 Controle de Lavagem</h1>' +
-                '<div class="subtitle">Relatório gerado em ' + new Date().toLocaleString('pt-BR') + ' • Data operacional: ' + escapeHtml(dataAtual) + ' • Turno: ' + escapeHtml(turnoAtual) + '</div>' +
+                '<div class="subtitle">Relatorio gerado em ' + new Date().toLocaleString('pt-BR') + ' • Data operacional: ' + escapeHtml(dataAtual) + ' • Turno: ' + escapeHtml(turnoAtual) + '</div>' +
                 '<div class="summary">' +
-                '<div class="summary-item"><span class="summary-label">Total de Frotas</span><span class="summary-value">' + total + '</span></div>' +
-                '<div class="summary-item"><span class="summary-label">✅ Lavadas</span><span class="summary-value">' + ok + '</span></div>' +
-                '<div class="summary-item"><span class="summary-label">❌ Pendentes</span><span class="summary-value">' + naook + '</span></div>' +
-                (emOficina > 0 ? '<div class="summary-item"><span class="summary-label">🔧 Na Oficina</span><span class="summary-value">' + emOficina + '</span></div>' : '') +
-                (desativadas > 0 ? '<div class="summary-item"><span class="summary-label">🚫 Desativadas</span><span class="summary-value">' + desativadas + '</span></div>' : '') +
-                '</div>' + blocos + '</div></body></html>';
+                '<div class="card total"><div class="label">Total</div><div class="value">' + total + '</div></div>' +
+                '<div class="card ok"><div class="label">Lavadas</div><div class="value">' + ok + '</div></div>' +
+                '<div class="card naook"><div class="label">Pendentes</div><div class="value">' + naook + '</div></div>' +
+                '<div class="card oficina"><div class="label">Oficina</div><div class="value">' + emOficina + '</div></div>' +
+                '<div class="card desativada"><div class="label">Desativadas</div><div class="value">' + desativadas + '</div></div>' +
+                '<div class="card total"><div class="label">Data</div><div class="value" style="font-size:16px">' + escapeHtml(dataAtual) + '</div></div>' +
+                '</div>' +
+                blocos +
+                '</div></body></html>';
 
             const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const win = window.open(url, '_blank');
             if (win) {
                 win.focus();
+                setTimeout(function() {
+                    win.print();
+                }, 600);
             } else {
                 mostrarToast('⚠️ Pop-up bloqueado. Permita pop-ups para exportar PDF.', 'error');
             }
