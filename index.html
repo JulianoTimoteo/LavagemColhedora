@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1a365d">
+    <link rel="icon" type="image/x-icon" href="favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+    <link rel="manifest" href="favicons/android-chrome-192x192.png">
     <title>🚜 Controle de Lavagem</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -28,13 +33,9 @@
             height: 64px;
             width: 64px;
             border-radius: 16px;
-            background: rgba(255,255,255,0.15);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: white;
+            object-fit: cover;
             flex-shrink: 0;
+            background: rgba(255,255,255,0.15);
         }
         .header-left h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
         .header-left h1 span { font-size: 20px; }
@@ -275,7 +276,7 @@
         @media (max-width: 480px) {
             body { padding: 6px; padding-bottom: 80px; }
             .header { padding: 8px 10px; }
-            .header-logo { height: 32px; width: 32px; font-size: 18px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 13px; }
             .header-time { font-size: 9px; padding: 2px 6px; }
             .btn { font-size: 9px; padding: 3px 6px; min-height: 24px; }
@@ -308,7 +309,7 @@
         @media (min-width: 481px) and (max-width: 640px) {
             body { padding: 10px; padding-bottom: 80px; }
             .header { padding: 12px 14px; }
-            .header-logo { height: 40px; width: 40px; font-size: 20px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 15px; }
             .btn { font-size: 10px; padding: 4px 8px; min-height: 28px; }
             .header-actions .btn span { display: none; }
@@ -324,7 +325,7 @@
         @media (min-width: 641px) and (max-width: 768px) {
             body { padding: 14px; padding-bottom: 80px; }
             .header { padding: 14px 18px; }
-            .header-logo { height: 48px; width: 48px; font-size: 22px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 17px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -335,7 +336,7 @@
         @media (min-width: 769px) and (max-width: 1024px) {
             body { padding: 16px; }
             .header { padding: 16px 20px; }
-            .header-logo { height: 52px; width: 52px; font-size: 24px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 18px; }
             .dashboard.mobile { grid-template-columns: repeat(3, 1fr); }
             .dashboard.desktop { grid-template-columns: repeat(4, 1fr); }
@@ -346,7 +347,7 @@
         @media (min-width: 1025px) and (max-width: 1280px) {
             body { padding: 20px; padding-bottom: 40px; }
             .header { padding: 18px 24px; }
-            .header-logo { height: 56px; width: 56px; font-size: 26px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 20px; }
             .btn { padding: 7px 16px; font-size: 12px; min-height: 36px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -374,7 +375,7 @@
         @media (min-width: 1281px) and (max-width: 1536px) {
             body { padding: 24px; padding-bottom: 40px; }
             .header { padding: 20px 28px; }
-            .header-logo { height: 60px; width: 60px; font-size: 28px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 22px; }
             .btn { padding: 8px 18px; font-size: 13px; min-height: 38px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -402,7 +403,7 @@
         @media (min-width: 1537px) {
             body { padding: 28px; padding-bottom: 40px; }
             .header { padding: 24px 32px; }
-            .header-logo { height: 64px; width: 64px; font-size: 32px; }
+            .header-logo { height: ; width: ; }
             .header-left h1 { font-size: 24px; }
             .btn { padding: 10px 22px; font-size: 14px; min-height: 42px; }
             .dashboard.mobile { grid-template-columns: repeat(6, 1fr); }
@@ -441,7 +442,7 @@
     <div class="container">
         <header class="header">
             <div class="header-left">
-                <div class="header-logo" aria-hidden="true">🚜</div>
+                <img src="favicons/LOGO SLOGAN USINA.png" alt="Logo Usina" class="header-logo" />
                 <h1>Controle de Lavagem</h1>
                 <span class="header-time" id="headerTime">--:--</span>
                 <span class="header-shift" id="headerShift">Turno --</span>
@@ -869,7 +870,7 @@
                 try {
                     const parsed = JSON.parse(salvoOriginais);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        registrosOriginais = parsed.map(r => ({ oficina: false, turno: null, desativada: false, ...r }));
+                        registrosOriginais = parsed.map(r => ({ oficina: false, desativada: false, ...r }));
                         salvarLocal();
                         aplicarFiltroDataAtual();
                         renderizarTudo();
@@ -1486,56 +1487,47 @@
             const emOficina = registros.filter(r => r.oficina).length;
             const desativadas = registros.filter(r => r.desativada).length;
 
-            const linhasPorFrente = {};
-            registros.forEach(r => {
-                if (!linhasPorFrente[r.frente]) linhasPorFrente[r.frente] = [];
-                linhasPorFrente[r.frente].push(r);
-            });
-
             function escapeHtml(text) {
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
             }
 
-            const frentesOrdenadas = Object.keys(linhasPorFrente).sort();
             let tableRows = '';
-            frentesOrdenadas.forEach(frente => {
-                const frotas = linhasPorFrente[frente].sort((a, b) => a.frota.localeCompare(b.frota));
-                frotas.forEach((r, idx) => {
-                    const isFirstInGroup = idx === 0;
-                    const rowClass = isFirstInGroup ? 'group-start' : '';
-                    const frenteCell = isFirstInGroup ? '<td class="frente-cell" rowspan="' + frotas.length + '">' + escapeHtml(frente) + '</td>' : '';
-                    const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
-                    const statusText = r.oficina ? '🔧 —' : r.desativada ? '🚫 DESATIVADA' : r.status === 'OK' ? '✅ OK' : '❌ NÃOOK';
-                    const turnoText = r.turno || '—';
-                    tableRows += '<tr class="' + rowClass + '">' + frenteCell + '<td class="frota-cell">' + escapeHtml(r.frota) + ' 📝</td><td class="turno-cell">' + escapeHtml(turnoText) + '</td><td class="data-cell">' + escapeHtml(formatarData(r.data)) + '</td><td class="status-cell"><span class="status-badge ' + statusClass + '">' + statusText + '</span></td></tr>';
-                });
+            registros.forEach((r, idx) => {
+                const statusClass = r.oficina ? 'status-oficina' : r.desativada ? 'status-desativada' : r.status === 'OK' ? 'status-ok' : 'status-naook';
+                const statusText = r.oficina ? '🔧 —' : r.desativada ? '🚫 DESATIVADA' : r.status === 'OK' ? '✅ OK' : '❌ NÃOOK';
+                const turnoText = r.turno || '—';
+                const frente = escapeHtml(r.frente);
+                const frota = escapeHtml(r.frota);
+                const turno = escapeHtml(turnoText);
+                const data = escapeHtml(formatarData(r.data));
+                const status = '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
+
+                if (idx > 0) {
+                    tableRows += '<tr class="separator"><td colspan="5" style="padding:4px 0;"><div style="border-top:2px solid #1a202c;margin:0;"></div></td></tr>';
+                }
+                tableRows += '<tr><td>' + frente + '</td><td>' + frota + ' 📝</td><td>' + turno + '</td><td>' + data + '</td><td>' + status + '</td></tr>';
             });
 
             const html = '<!DOCTYPE html>' +
                 '<html lang="pt-BR">' +
                 '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Relatorio Lavagem - ' + escapeHtml(dataAtual) + '</title><style>' +
                 '*{box-sizing:border-box;margin:0;padding:0}*::before,*::after{box-sizing:border-box}' +
-                'body{margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f0f4f8;color:#1a202c;font-size:15px;line-height:1.7}' +
+                'body{margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f0f4f8;color:#1a202c;font-size:14px;line-height:1.6}' +
                 '.page{max-width:1100px;margin:0 auto}' +
-                'h1{font-size:26px;font-weight:800;margin-bottom:8px;text-align:center}' +
-                '.subtitle{text-align:center;color:#718096;font-size:13px;margin-bottom:28px}' +
-                '.summary{background:white;border-radius:16px;padding:20px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
-                '.summary-item{padding:14px 0;border-bottom:1px solid #e2e8f0}.summary-item:last-child{border-bottom:none}' +
-                '.summary-label{font-weight:600;color:#4a5568;font-size:14px}' +
-                '.summary-value{font-weight:700;color:#1a202c;font-size:16px;float:right}' +
-                '.report-table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)}' +
-                '.report-table th{background:#1a365d;color:white;text-align:left;padding:12px 16px;font-size:13px;text-transform:uppercase;letter-spacing:0.05em}' +
-                '.report-table td{padding:12px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;vertical-align:middle}' +
-                '.report-table tr.group-start td:first-child{border-top:3px solid #1a202c}' +
+                'h1{font-size:24px;font-weight:800;margin-bottom:8px;text-align:center}' +
+                '.subtitle{text-align:center;color:#718096;font-size:13px;margin-bottom:24px}' +
+                '.summary{background:white;border-radius:12px;padding:16px;margin-bottom:24px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}' +
+                '.summary-item{padding:10px 0;border-bottom:1px solid #e2e8f0}.summary-item:last-child{border-bottom:none}' +
+                '.summary-label{font-weight:600;color:#4a5568;font-size:13px}' +
+                '.summary-value{font-weight:700;color:#1a202c;font-size:15px;float:right}' +
+                '.report-table{width:100%;border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.06)}' +
+                '.report-table th{background:#1a365d;color:white;text-align:left;padding:10px 14px;font-size:12px;text-transform:uppercase;letter-spacing:0.05em}' +
+                '.report-table td{padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;vertical-align:middle}' +
                 '.report-table tr:last-child td{border-bottom:none}' +
-                '.frente-cell{font-weight:700;color:#2d3748;background:#f7fafc;width:140px}' +
-                '.frota-cell{font-weight:600;color:#1a202c;width:120px}' +
-                '.turno-cell{width:70px;text-align:center}' +
-                '.data-cell{width:90px;text-align:center}' +
-                '.status-cell{text-align:center;width:130px}' +
-                '.status-badge{display:inline-block;padding:5px 14px;border-radius:14px;font-size:12px;font-weight:700}' +
+                '.report-table .separator td{padding:2px 0;background:#f7fafc}' +
+                '.status-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700}' +
                 '.status-ok{background:#c6f6d5;color:#22543d}.status-naook{background:#fed7d7;color:#822727}.status-oficina{background:#feebc8;color:#744210}.status-desativada{background:#e2e8f0;color:#4a5568}' +
                 '@media print{body{padding:0;background:white}.page{max-width:100%}.report-table{box-shadow:none;border:1px solid #e2e8f0}}' +
                 '</style></head><body><div class="page">' +
@@ -1561,16 +1553,8 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-
-            const win = window.open(url, '_blank');
-            if (win) {
-                win.focus();
-                setTimeout(function() {
-                    win.print();
-                }, 600);
-            } else {
-                mostrarToast('⚠️ Pop-up bloqueado. Permita pop-ups para exportar.', 'error');
-            }
+            URL.revokeObjectURL(url);
+            mostrarToast('📥 PDF exportado!', 'success');
         }
 
         // ============================================================
