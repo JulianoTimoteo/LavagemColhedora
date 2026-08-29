@@ -338,14 +338,26 @@ function lerGoogleSheets() {
     };
     document.body.appendChild(script);
 
-    setTimeout(function () {
+    let tentativas = 0;
+    const MAX_TENTATIVAS = 2;
+
+    function timeoutHandler() {
         if (!carregando) return;
         carregando = false;
         try { delete window[callbackName]; } catch (e) { }
         try { document.body.removeChild(script); } catch (e) { }
-        setStatus('❌ <span class="erro">Timeout de conexao — verifique o Web App</span>');
-        mostrarToast('Timeout — verifique o Web App do Apps Script', 'error');
-    }, 6000);
+
+        tentativas++;
+        if (tentativas < MAX_TENTATIVAS) {
+            setStatus('🔄 <span class="loading">Tentando novamente...</span>');
+            setTimeout(lerGoogleSheets, 1500);
+        } else {
+            setStatus('❌ <span class="erro">Timeout de conexao — verifique o Web App</span>');
+            mostrarToast('Timeout — verifique o Web App do Apps Script', 'error');
+        }
+    }
+
+    setTimeout(timeoutHandler, 12000);
 }
 
 // ============================================================
