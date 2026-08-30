@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a365d">
+    <link rel="icon" type="image/x-icon" href="favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicons/apple-touch-icon.png">
+    <title>🚜 Controle de Lavagem</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <img src="favicons/LOGO%20SLOGAN%20USINA.png" alt="Logo Usina" class="header-logo">
+                <h1><img src="favicons/harvest.png" alt="Harvest" class="header-harvest"> Controle de Lavagem</h1>
+                <span class="header-time" id="headerTime">--:--</span>
+                <span class="header-shift" id="headerShift">Turno --</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-export" id="exportPdfBtn" title="Exportar PDF">📄 <span>EXPORTAR PDF</span></button>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <span class="status-text" id="statusText">🔄 Inicializando...</span>
+        </div>
+
+        <div class="dashboard" id="dashboard">
+            <div class="card total">
+                <div class="label">Total</div>
+                <div class="value" id="totalRegistros">0</div>
+                <div class="sub" id="totalHoje">Hoje: 0</div>
+            </div>
+            <div class="card ok">
+                <div class="label">✅ Lavadas</div>
+                <div class="value" id="totalOk">0</div>
+                <div class="sub" id="eficiencia">0%</div>
+            </div>
+            <div class="card naook">
+                <div class="label">❌ Pendentes</div>
+                <div class="value" id="totalNaook">0</div>
+                <div class="sub" id="pctPendente">0% do total</div>
+            </div>
+            <div class="card turno-a">
+                <div class="label">🟢 Turno A</div>
+                <div class="value" id="totalTurnoA">0</div>
+                <div class="sub" id="pctTurnoA">0% das lavadas</div>
+            </div>
+            <div class="card turno-b">
+                <div class="label">🔵 Turno B</div>
+                <div class="value" id="totalTurnoB">0</div>
+                <div class="sub" id="pctTurnoB">0% das lavadas</div>
+            </div>
+            <div class="card turno-c">
+                <div class="label">🟣 Turno C</div>
+                <div class="value" id="totalTurnoC">0</div>
+                <div class="sub" id="pctTurnoC">0% das lavadas</div>
+            </div>
+        </div>
+
+        <div class="filters-toggle" id="filtersToggle">
+            <span>🔍 Filtros e Busca</span>
+            <span class="arrow" id="filtersArrow">▼</span>
+        </div>
+
+        <div class="filters-panel" id="filtersPanel">
+            <label>Busca:</label>
+            <input type="text" id="searchInput" placeholder="Frota ou Frente..." style="flex:1;min-width:120px;max-width:260px;">
+
+            <label>Turno:</label>
+            <select id="filterTurno">
+                <option value="all">Todos</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+            </select>
+
+            <label>Status:</label>
+            <select id="filterStatus">
+                <option value="all">Todos</option>
+                <option value="OK">OK</option>
+                <option value="NAOOK">NÃOOK</option>
+            </select>
+
+            <label>Frente:</label>
+            <select id="filterFrente"><option value="all">Todas</option></select>
+
+            <label>Data:</label>
+            <input type="date" id="filterData">
+
+            <button class="btn btn-filter" id="applyFilters">🔍 Filtrar</button>
+            <button class="btn btn-clear" id="resetFilters" style="background:#e2e8f0;color:#2d3748;">↺ Hoje</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Frente</th>
+                        <th>Frota</th>
+                        <th>Turno</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="5" class="loading-msg pulse">⏳ Carregando dados...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalFrota">
+        <div class="modal">
+            <h2 id="modalFrotaTitle">📝 Editar Colhedora</h2>
+
+            <div class="modal-tabs">
+                <button class="tab-btn active" data-tab="tabColhedora">Colhedora</button>
+                <button class="tab-btn" data-tab="tabFrentes">Frentes</button>
+                <button class="tab-btn" data-tab="tabColhedoras">Colhedoras</button>
+            </div>
+
+            <div class="tab-content active" id="tabColhedora">
+                <div class="info-row" id="modalFrotaInfo">
+                    <span>Frota</span>
+                    <strong id="modalFrotaNumero">-</strong>
+                    <span id="modalFrotaFrenteAtual" style="color:#718096;font-size:12px;">-</span>
+                </div>
+                <label>Frente:</label>
+                <input type="text" id="modalFrotaFrente" placeholder="Ex: FRENTE - 08" list="listaFrentes">
+                <datalist id="listaFrentes"></datalist>
+
+                <div class="oficina-section" id="oficinaSection">
+                    <div class="oficina-header">
+                        <div class="oficina-title">
+                            <span>🛠️</span>
+                            <span>Enviar para a Oficina</span>
+                        </div>
+                        <span class="oficina-badge inactive" id="oficinaBadge">Inativo</span>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                        <span style="font-size:13px;color:#718096;">Ativar modo oficina</span>
+                        <label class="switch">
+                            <input type="checkbox" id="modalFrotaOficina">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="switch-row" style="margin-top:12px;">
+                    <span>🚫 Desativar Frente</span>
+                    <input type="checkbox" id="modalFrotaDesativar">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-excluir" id="modalFrotaExcluir">🗑️ Excluir</button>
+                    <button class="btn-cancel" id="modalFrotaCancel">Cancelar</button>
+                    <button class="btn-save" id="modalFrotaSave">💾 Salvar</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tabFrentes">
+                <label>Nome da Frente:</label>
+                <input type="text" id="novaFrenteNome" placeholder="Ex: FRENTE - 08">
+                <button class="btn btn-filter" id="btnCriarFrente" style="margin-top:8px;">➕ Criar Frente</button>
+
+                <div class="table-wrapper" style="margin-top:12px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Frente</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaFrentes">
+                            <tr><td colspan="2" class="loading-msg pulse">⏳ Carregando frentes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tabColhedoras">
+                <label>Nova Colhedora:</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input type="text" id="novaColhedoraFrota" placeholder="Ex: 80118" style="flex:1;min-width:120px;">
+                    <select id="novaColhedoraFrente" style="flex:1;min-width:140px;">
+                        <option value="">Selecione a frente</option>
+                    </select>
+                    <label class="switch" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+                        <input type="checkbox" id="novaColhedoraOficina">
+                        <span class="slider"></span>
+                        <span style="font-size:12px;color:#4a5568;">Oficina</span>
+                    </label>
+                </div>
+                <button class="btn btn-filter" id="btnCriarColhedora" style="margin-top:8px;">➕ Adicionar Colhedora</button>
+
+                <div class="table-wrapper" style="margin-top:12px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Frota</th>
+                                <th>Frente</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaColhedoras">
+                            <tr><td colspan="3" class="loading-msg pulse">⏳ Carregando colhedoras...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
