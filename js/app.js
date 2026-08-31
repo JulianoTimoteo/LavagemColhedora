@@ -717,6 +717,18 @@ function getFiltros() {
 // ============================================================
 //  REGISTROS FILTRADOS (aplicado na tabela)
 // ============================================================
+function ordenarPorFrente(a, b) {
+    const numA = parseInt(a.frente.replace(/[^0-9]/g, ''), 10) || 0;
+    const numB = parseInt(b.frente.replace(/[^0-9]/g, ''), 10) || 0;
+    if (numA !== numB) return numA - numB;
+    const cmpFrente = a.frente.localeCompare(b.frente);
+    if (cmpFrente !== 0) return cmpFrente;
+    const numFrotaA = parseInt(a.frota.replace(/[^0-9]/g, ''), 10) || 0;
+    const numFrotaB = parseInt(b.frota.replace(/[^0-9]/g, ''), 10) || 0;
+    if (numFrotaA !== numFrotaB) return numFrotaA - numFrotaB;
+    return a.frota.localeCompare(b.frota);
+}
+
 function getRegistrosFiltrados() {
     const f = getFiltros();
     const buscaEl = document.getElementById('searchInput');
@@ -730,7 +742,7 @@ function getRegistrosFiltrados() {
         return r.frota.toLowerCase().indexOf(busca) !== -1 || r.frente.toLowerCase().indexOf(busca) !== -1;
     });
 
-    resultado.sort(function (a, b) { return a.frente.localeCompare(b.frente); });
+    resultado.sort(ordenarPorFrente);
     return resultado;
 }
 

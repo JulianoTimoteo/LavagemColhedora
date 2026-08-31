@@ -42,7 +42,7 @@ function doGet(e) {
   // SE TIVER 'callback' -> RETORNA JSONP
   // ==========================================================
   const callback = (e && e.parameter && e.parameter.callback) || 'callback';
-  
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     if (!ss) {
@@ -82,7 +82,9 @@ function doGet(e) {
       for (let j = 3; j < linha.length; j++) {
         const valor = String(linha[j] || '').trim().toUpperCase();
         if (!valor) continue;
-        if (valor === 'DESATIVADA') continue;
+        // CORRIGIDO: antes o codigo pulava (continue) qualquer celula
+        // "DESATIVADA" e nunca incluia o campo "desativada" na resposta,
+        // entao o app nunca sabia que uma frota estava desativada.
         const nomeCol = String(dados[0][j] || '').trim();
         const dataCol = converterNomeColunaParaData(nomeCol);
         if (!dataCol) continue;
@@ -94,8 +96,9 @@ function doGet(e) {
             frota,
             turno: turno || null,
             data: dataCol,
-            status: normalizarStatus(valor),
-            oficina: valor === 'OFICINA'
+            status: valor === 'DESATIVADA' ? 'NAOOK' : normalizarStatus(valor),
+            oficina: valor === 'OFICINA',
+            desativada: valor === 'DESATIVADA'
           });
         }
         if (dataCol === hoje) achouHoje = true;
@@ -110,13 +113,14 @@ function doGet(e) {
             turno: turno || null,
             data: hoje,
             status: 'NAOOK',
-            oficina: false
+            oficina: false,
+            desativada: false
           });
         }
       }
     }
 
-    const registros = Array.from(mapa.values());
+    const registros = Array.from(mapa.values()).sort(ordenarPorFrente);
     const resultado = JSON.stringify({ sucesso: true, dados: registros, total: registros.length });
     return ContentService
       .createTextOutput(`${callback}(${resultado})`)
@@ -181,13 +185,13 @@ function doPost(e) {
 // ============================================================
 function converterNomeColunaParaData(nomeCol) {
   if (!nomeCol) return null;
-  
+
   const mesesPT = {
     'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04',
     'mai': '05', 'jun': '06', 'jul': '07', 'ago': '08',
     'set': '09', 'out': '10', 'nov': '11', 'dez': '12'
   };
-  
+
   const mesesEN = {
     'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
     'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
@@ -199,7 +203,24 @@ function converterNomeColunaParaData(nomeCol) {
     const dia = String(partes[0]).padStart(2, '0');
     const mes = mesesPT[partes[1]] || mesesEN[partes[1]] || null;
     if (mes) {
-      return `2026-${mes}-${dia}`;
+      // CORRIGIDO: o nome da coluna nao guarda o ano (ex: "31-ago"), e o
+      // codigo antigo usava um ano fixo (2026) — isso quebraria a partir
+      // de 1/jan/2027 (toda coluna deixaria de bater com a data pedida).
+      // Agora escolhemos, entre o ano atual e os anos vizinhos, aquele
+      // que resulta na data mais proxima de hoje.
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear();
+      let melhorAno = anoAtual;
+      let melhorDiff = Infinity;
+      for (const ano of [anoAtual - 1, anoAtual, anoAtual + 1]) {
+        const candidato = new Date(ano, parseInt(mes, 10) - 1, parseInt(dia, 10));
+        const diff = Math.abs(candidato.getTime() - hoje.getTime());
+        if (diff < melhorDiff) {
+          melhorDiff = diff;
+          melhorAno = ano;
+        }
+      }
+      return `${melhorAno}-${mes}-${dia}`;
     }
   }
   return null;
@@ -228,6 +249,18 @@ function getDataAtual() {
   return `${y}-${m}-${d}`;
 }
 
+function ordenarPorFrente(a, b) {
+  const numA = parseInt(a.frente.replace(/[^0-9]/g, ''), 10) || 0;
+  const numB = parseInt(b.frente.replace(/[^0-9]/g, ''), 10) || 0;
+  if (numA !== numB) return numA - numB;
+  const cmpFrente = a.frente.localeCompare(b.frente);
+  if (cmpFrente !== 0) return cmpFrente;
+  const numFrotaA = parseInt(a.frota.replace(/[^0-9]/g, ''), 10) || 0;
+  const numFrotaB = parseInt(b.frota.replace(/[^0-9]/g, ''), 10) || 0;
+  if (numFrotaA !== numFrotaB) return numFrotaA - numFrotaB;
+  return a.frota.localeCompare(b.frota);
+}
+
 function ehMais48h(dataRef) {
   const hoje = new Date();
   const partes = String(dataRef || '').split('-');
@@ -236,13 +269,6 @@ function ehMais48h(dataRef) {
   const diffMs = hoje - ref;
   const diffHoras = diffMs / (1000 * 60 * 60);
   return diffHoras > 48;
-}
-
-function normalizarData_(valor) {
-  if (valor instanceof Date) {
-    return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  }
-  return String(valor || '').trim();
 }
 
 function obterAba(ss) {
@@ -274,7 +300,7 @@ function registrarHistorico(sheet, dados) {
     const usuario = Session.getActiveUser().getEmail() || 'usuario';
     const dataHora = new Date();
     const dataHoraStr = Utilities.formatDate(dataHora, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-    
+
     const linha = [
       dataHoraStr,
       dados.acao || '',
@@ -286,7 +312,7 @@ function registrarHistorico(sheet, dados) {
       dados.data || getDataAtual(),
       usuario
     ];
-    
+
     sheetHist.appendRow(linha);
   } catch (erro) {
     Logger.log(`Erro ao registrar histórico: ${erro.toString()}`);
@@ -415,36 +441,36 @@ function normalizarPlanilha(sheet) {
     const dados = sheet.getDataRange().getValues();
     const linhasValidas = [];
     const frotasVistas = new Set();
-    
+
     if (dados.length > 0) {
       linhasValidas.push(dados[0]);
     }
-    
+
     for (let i = 1; i < dados.length; i++) {
       const frente = String(dados[i][0] || '').trim();
       const frota = String(dados[i][1] || '').trim();
-      
+
       if (!frente && !frota) continue;
-      
+
       const chave = `${frente}|${frota}`;
       if (frotasVistas.has(chave)) continue;
-      
+
       frotasVistas.add(chave);
-      
+
       const novaLinha = [frente, frota];
       for (let j = 2; j < dados[i].length; j++) {
         novaLinha.push(dados[i][j]);
       }
       linhasValidas.push(novaLinha);
     }
-    
+
     if (linhasValidas.length < dados.length) {
       sheet.clearContents();
       sheet.getRange(1, 1, linhasValidas.length, linhasValidas[0].length).setValues(linhasValidas);
       Logger.log(`✅ Planilha normalizada: ${dados.length} → ${linhasValidas.length} linhas`);
       return { sucesso: true, mensagem: `Planilha normalizada: removidas ${dados.length - linhasValidas.length} linhas duplicadas/vazias` };
     }
-    
+
     return { sucesso: true, mensagem: 'Planilha já está limpa' };
   } catch (erro) {
     Logger.log(`❌ Erro ao normalizar: ${erro.toString()}`);
@@ -560,7 +586,7 @@ function adicionarColhedora(sheet, dados) {
     if (colData !== -1) {
       sheet.getRange(novaLinha, colData).setValue('NAOOK');
     }
-    
+
     return { sucesso: true, mensagem: `Colhedora ${frota} adicionada` };
   } catch (erro) {
     return { sucesso: false, erro: erro.toString() };
@@ -569,15 +595,18 @@ function adicionarColhedora(sheet, dados) {
 
 function desativarFrente(sheet, dados) {
   try {
-    const { frota, data, desativado } = dados;
+    // CORRIGIDO: o frontend envia o campo "desativar", mas o codigo antigo
+    // lia "desativado" (nome diferente) — o valor chegava sempre undefined
+    // e a celula era sempre gravada como NAOOK, nunca como DESATIVADA.
+    const { frota, data, desativar } = dados;
     if (ehMais48h(data)) {
       return { sucesso: false, erro: 'Não é permitido alterar registros com mais de 48h' };
     }
     const linha = encontrarLinhaFrota(sheet, frota);
     if (linha === -1) return { sucesso: false, erro: `Frota ${frota} não encontrada` };
     const col = garantirColunaData(sheet, data);
-    sheet.getRange(linha, col).setValue(desativado ? 'DESATIVADA' : 'NAOOK');
-    return { sucesso: true, mensagem: desativado ? `Frota ${frota} desativada para ${data}` : `Frota ${frota} ativada para ${data}` };
+    sheet.getRange(linha, col).setValue(desativar ? 'DESATIVADA' : 'NAOOK');
+    return { sucesso: true, mensagem: desativar ? `Frota ${frota} desativada para ${data}` : `Frota ${frota} ativada para ${data}` };
   } catch (erro) {
     return { sucesso: false, erro: erro.toString() };
   }
@@ -602,14 +631,14 @@ function criarEstruturaInicial() {
     const cabecalho = ['FRENTES', 'FROTAS'];
     const hoje = new Date();
     const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    
+
     for (let i = -5; i <= 5; i++) {
       const d = new Date(hoje);
       d.setDate(d.getDate() + i);
       const nomeCol = `${d.getDate()}-${meses[d.getMonth()]}`;
       cabecalho.push(nomeCol);
     }
-    
+
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(cabecalho);
     }

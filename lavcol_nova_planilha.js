@@ -91,6 +91,7 @@ function doGet(e) {
       }
     }
 
+    registros.sort(ordenarPorFrente);
     const resultado = JSON.stringify({ sucesso: true, dados: registros, total: registros.length });
     return ContentService
       .createTextOutput(`${callback}(${resultado})`)
@@ -199,6 +200,18 @@ function getDataAtual() {
   const m = String(hoje.getMonth() + 1).padStart(2, '0');
   const d = String(hoje.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function ordenarPorFrente(a, b) {
+  const numA = parseInt(a.frente.replace(/[^0-9]/g, ''), 10) || 0;
+  const numB = parseInt(b.frente.replace(/[^0-9]/g, ''), 10) || 0;
+  if (numA !== numB) return numA - numB;
+  const cmpFrente = a.frente.localeCompare(b.frente);
+  if (cmpFrente !== 0) return cmpFrente;
+  const numFrotaA = parseInt(a.frota.replace(/[^0-9]/g, ''), 10) || 0;
+  const numFrotaB = parseInt(b.frota.replace(/[^0-9]/g, ''), 10) || 0;
+  if (numFrotaA !== numFrotaB) return numFrotaA - numFrotaB;
+  return a.frota.localeCompare(b.frota);
 }
 
 function normalizarData_(valor) {
