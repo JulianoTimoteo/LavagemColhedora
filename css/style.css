@@ -535,3 +535,154 @@ tr.linha-oficina td:first-child { border-left: 4px solid #e53e3e; }
 ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 .pulse { animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ============================================================
+   MOBILE SNAPSHOT - Layout otimizado para captura de tela
+   Quando .mobile-snapshot eh aplicado, o html2canvas captura
+   o conteudo como se fosse em uma tela de celular (390px wide)
+   ============================================================ */
+.mobile-snapshot {
+    width: 390px !important;
+    max-width: 390px !important;
+    padding: 12px !important;
+    background: #f0f4f8 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    box-sizing: border-box !important;
+}
+
+.mobile-snapshot .header {
+    background: linear-gradient(135deg, #1a365d, #2b6cb0) !important;
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+    margin-bottom: 10px !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+}
+
+.mobile-snapshot .header-logo {
+    height: 56px !important;
+    width: 168px !important;
+}
+
+.mobile-snapshot .header-harvest {
+    height: 28px !important;
+    width: 28px !important;
+}
+
+.mobile-snapshot .header-left h1 {
+    font-size: 14px !important;
+}
+
+.mobile-snapshot .header-time,
+.mobile-snapshot .header-shift {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+.mobile-snapshot .btn {
+    padding: 5px 10px !important;
+    font-size: 10px !important;
+    min-height: 26px !important;
+}
+
+.mobile-snapshot .status-bar {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+}
+
+.mobile-snapshot .dashboard {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+}
+
+.mobile-snapshot .card {
+    padding: 6px 4px !important;
+    border-radius: 8px !important;
+}
+
+.mobile-snapshot .card .label {
+    font-size: 8px !important;
+}
+
+.mobile-snapshot .card .value {
+    font-size: 16px !important;
+}
+
+.mobile-snapshot .card .sub {
+    font-size: 8px !important;
+}
+
+.mobile-snapshot .filters-toggle,
+.mobile-snapshot .filters-panel {
+    display: none !important;
+}
+
+.mobile-snapshot .table-wrapper {
+    background: white !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    overflow: visible !important;
+}
+
+.mobile-snapshot table {
+    width: 100% !important;
+    font-size: 11px !important;
+    min-width: 0 !important;
+}
+
+.mobile-snapshot thead th {
+    padding: 6px 4px !important;
+    font-size: 9px !important;
+    background: #1a365d !important;
+    color: white !important;
+    border-bottom: 2px solid #2b6cb0 !important;
+}
+
+.mobile-snapshot tbody td {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    border-bottom: 1px solid #edf2f7 !important;
+}
+
+.mobile-snapshot .col-frente {
+    font-size: 10px !important;
+    min-width: 60px !important;
+}
+
+.mobile-snapshot .col-frota {
+    font-size: 12px !important;
+    min-width: 55px !important;
+}
+
+.mobile-snapshot .frota-chip {
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+}
+
+.mobile-snapshot .status-badge {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+}
+
+.mobile-snapshot .turno-badge {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+}
+
+.mobile-snapshot .btn-editar-frota {
+    font-size: 11px !important;
+    padding: 1px 3px !important;
+}
+
+.mobile-snapshot .col-data {
+    font-size: 10px !important;
+    min-width: 40px !important;
+}
+
+.mobile-snapshot .grupo-frente td,
+.mobile-snapshot .grupo-oficina td {
+    border-top: 2px solid #1a202c !important;
+}
