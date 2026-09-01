@@ -160,6 +160,10 @@ body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
+.modal .table-wrapper { overflow-x: visible; max-width: 100%; }
+.modal table { min-width: 0; width: 100%; table-layout: auto; }
+.modal th, .modal td { white-space: normal; word-break: break-word; padding: 8px 6px; }
+.modal .col-frente, .modal .col-frota { min-width: 0; max-width: 100%; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead { background: #f7fafc; border-bottom: 2px solid #e2e8f0; }
 th { padding: 10px 8px; text-align: left; font-weight: 700; color: #2d3748; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; position: sticky; top: 0; background: #f7fafc; z-index: 5; }
