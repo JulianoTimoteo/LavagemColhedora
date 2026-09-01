@@ -51,14 +51,20 @@ async function compartilharWhatsApp() {
         const fileName = 'lavagem_' + getDataAtual() + '.png';
         const file = new File([blob], fileName, { type: 'image/png' });
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Caminho 1: Clipboard API (moderno - Chrome/Edge/Safari)
+        if (navigator.clipboard && window.ClipboardItem) {
             try {
-                await navigator.share({ files: [file], title: 'Controle de Lavagem', text: 'Relatorio de Lavagem - ' + getDataAtual() });
-                mostrarToast('Imagem compartilhada!', 'success');
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                mostrarToast('Imagem copiada! Cole no WhatsApp (Ctrl+V / long press)', 'success');
                 return;
-            } catch (e) {}
+            } catch (e) {
+                console.warn('Clipboard falhou, tentando download:', e);
+            }
         }
 
+        // Fallback: download da imagem
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -67,13 +73,7 @@ async function compartilharWhatsApp() {
         a.click();
         try { document.body.removeChild(a); } catch (e2) {}
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-
-        const texto = encodeURIComponent('Relatorio de Lavagem - ' + getDataAtual());
-        setTimeout(function () {
-            window.open('https://wa.me/?text=' + texto, '_blank');
-        }, 600);
-
-        mostrarToast('Imagem baixada! Anexe ao WhatsApp', 'success');
+        mostrarToast('Imagem baixada! Compartilhe o arquivo', 'success');
     } catch (err) {
         console.error(err);
         mostrarToast('Erro ao gerar imagem: ' + err.message, 'error');
