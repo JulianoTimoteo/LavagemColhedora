@@ -17,8 +17,11 @@ const CONFIG = {
     chaveOriginais: 'lavagemDadosOriginais',
     chaveDevice: 'lavagemDeviceId',
     chaveUltimoSync: 'lavagemLastSync',
-    // Timeout (ms) aguardado apos envio via iframe
-    timeoutIframe: 1500
+    // Timeout (ms) aguardado apos envio via iframe (usado apenas no envio em lote)
+    timeoutIframe: 1500,
+    // Timeout (ms) aguardado pela confirmacao JSONP de uma acao individual
+    // (Apps Script pode demorar, principalmente na primeira chamada / cold start)
+    timeoutAcao: 8000
 };
 
 // ============================================================
@@ -378,16 +381,14 @@ function criarRegistrosDia() {
             frentesFrotas: frentesFrotas
         };
 
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-        document.body.appendChild(iframe);
-
-        setTimeout(function () {
-            try { document.body.removeChild(iframe); } catch (e) { }
-            if (statusText) statusText.innerHTML = '✅ <span class="ok">Registros criados para ' + dataAtual + '</span>';
+        enviarAcao(payload, function (resultado) {
+            if (resultado && resultado.sucesso) {
+                if (statusText) statusText.innerHTML = '✅ <span class="ok">Registros criados para ' + dataAtual + '</span>';
+            } else if (statusText) {
+                statusText.innerHTML = '❌ <span class="erro">Erro ao criar registros</span>';
+            }
             lerGoogleSheets();
-        }, CONFIG.timeoutIframe);
+        });
     } catch (error) {
         console.error('Erro ao criar registros:', error);
         mostrarToast('Erro ao criar registros do dia', 'error');
@@ -413,22 +414,23 @@ function salvarGoogleSheets() {
                     turno: r.turno || '',
                     frente: r.frente
                 };
-
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-                document.body.appendChild(iframe);
-
-                setTimeout(function () {
-                    try { document.body.removeChild(iframe); } catch (e) { }
-                    resolve({ sucesso: true });
-                }, CONFIG.timeoutIframe);
+                // Agora aguarda a confirmacao real do Apps Script (nao mais um
+                // timeout fixo que cortava a requisicao no meio do caminho).
+                enviarAcao(payload, function (resultado) {
+                    resolve(resultado || { sucesso: false, erro: 'sem resposta' });
+                });
             });
         });
 
-        Promise.all(promessas).then(function () {
-            mostrarToast('Dados salvos na planilha!', 'success');
-            if (statusText) statusText.innerHTML = '✅ <span class="ok">Salvo com sucesso!</span>';
+        Promise.all(promessas).then(function (resultados) {
+            const falhas = resultados.filter(function (r) { return !r || !r.sucesso; });
+            if (falhas.length > 0) {
+                if (statusText) statusText.innerHTML = '⚠️ <span class="erro">' + falhas.length + ' registro(s) nao foram salvos</span>';
+                mostrarToast(falhas.length + ' registro(s) falharam ao salvar', 'error');
+            } else {
+                mostrarToast('Dados salvos na planilha!', 'success');
+                if (statusText) statusText.innerHTML = '✅ <span class="ok">Salvo com sucesso!</span>';
+            }
             salvarBancoLocal(montarBancoLocal());
             lerGoogleSheets();
         }).catch(function (error) {
@@ -718,43 +720,79 @@ function alternarStatus(id) {
     });
 }
 
-// Envia uma acao critica garantir entrega com iframe GET para garantir a entrega mesmo adiantado para a acao critica.
+// ============================================================
+//  ENVIO DE ACOES AO APPS SCRIPT (JSONP com confirmacao real)
+// ============================================================
+// Diferente do antigo metodo (iframe removido apos um tempo fixo, que
+// CANCELAVA a requisicao antes do Apps Script terminar de gravar), esta
+// versao usa uma <script> tag com callback e so considera a acao concluida
+// quando o servidor realmente responde (ou quando estoura o timeout, o que
+// nesse caso É reportado como erro em vez de "sucesso" falso).
+function enviarAcao(payload, cb, timeoutMs) {
+    timeoutMs = timeoutMs || CONFIG.timeoutAcao;
+    const callbackName = 'acaoCallback_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    let respondido = false;
 
-function enviarAcaoBeacon(payload, cb) {
-    enviarAcao(payload, function() {
-        if (cb) cb();
-    });
-
-    // Backup: garante o callback mesmo se iframe nao disparar
-    if (cb) setTimeout(function() { cb(); }, CONFIG.timeoutIframe + 200);
-
-    // Garante entrega no caso de unload: cria iframe extra sincronico
-    if (typeof navigator !== 'undefined') {
-        document.addEventListener('beforeunload', function() {
-            const url = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            iframe.style.width = '1px';
-            iframe.style.height = '1px';
-            document.body.appendChild(iframe);
-        }, true);
+    function limpar() {
+        try { delete window[callbackName]; } catch (e) { }
+        try { if (script.parentNode) script.parentNode.removeChild(script); } catch (e) { }
     }
+
+    window[callbackName] = function (resultado) {
+        if (respondido) return;
+        respondido = true;
+        limpar();
+        if (resultado && resultado.sucesso === false) {
+            console.error('[Lavagem] Acao falhou:', payload.acao, resultado.erro);
+            mostrarToast(resultado.erro || 'Erro ao salvar na planilha', 'error');
+        }
+        if (cb) cb(resultado);
+    };
+
+    try {
+        script.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload)) +
+            '&callback=' + encodeURIComponent(callbackName);
+        script.onerror = function () {
+            if (respondido) return;
+            respondido = true;
+            limpar();
+            mostrarToast('Falha de conexao ao salvar na planilha', 'error');
+            if (cb) cb({ sucesso: false, erro: 'Falha de conexao' });
+        };
+        document.body.appendChild(script);
+    } catch (e) {
+        if (!respondido) {
+            respondido = true;
+            if (cb) cb({ sucesso: false, erro: e.toString() });
+        }
+        return;
+    }
+
+    setTimeout(function () {
+        if (respondido) return;
+        respondido = true;
+        limpar();
+        mostrarToast('Timeout ao salvar na planilha — tente novamente', 'error');
+        if (cb) cb({ sucesso: false, erro: 'Timeout aguardando resposta do servidor' });
+    }, timeoutMs);
 }
 
-// Envia uma acao ao Apps Script via iframe (GET ?dados=)
-function enviarAcao(payload, cb) {
-    try {
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = CONFIG.webAppUrl + '?dados=' + encodeURIComponent(JSON.stringify(payload));
-        document.body.appendChild(iframe);
-        setTimeout(function () {
-            try { document.body.removeChild(iframe); } catch (e) { }
-            if (cb) cb();
-        }, CONFIG.timeoutIframe);
-    } catch (e) {
-        if (cb) cb();
+// Usado para acoes criticas (ex: adicionar colhedora). Alem de aguardar a
+// confirmacao normal via enviarAcao, registra uma rede de seguranca com
+// navigator.sendBeacon: se a pagina for fechada/recarregada antes da resposta
+// chegar, o navegador ainda tenta entregar a requisicao em segundo plano.
+function enviarAcaoBeacon(payload, cb) {
+    enviarAcao(payload, cb);
+
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        document.addEventListener('beforeunload', function enviarBeacon() {
+            document.removeEventListener('beforeunload', enviarBeacon);
+            try {
+                const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+                navigator.sendBeacon(CONFIG.webAppUrl, blob);
+            } catch (e) { }
+        }, { once: true });
     }
 }
 
@@ -1024,12 +1062,15 @@ function criarNovaColhedora() {
     atualizarSelectFrentesColhedoras();
 
     const frentePlanilha = frente || 'FRENTE - 08';
-    enviarAcaoBeacon({ acao: 'adicionar', frente: frentePlanilha, frota: frota, data: getDataAtual() });
-    if (oficina) {
-        setTimeout(function () {
+    // 'enviarOficina' so pode rodar DEPOIS que a linha da colhedora existir na
+    // planilha; por isso agora ele so dispara dentro do callback de sucesso do
+    // 'adicionar', em vez de em paralelo (o que causava falha silenciosa).
+    enviarAcao({ acao: 'adicionar', frente: frentePlanilha, frota: frota, data: getDataAtual() }, function (resultado) {
+        if (!resultado || !resultado.sucesso) return; // erro ja mostrado pelo enviarAcao
+        if (oficina) {
             enviarAcao({ acao: 'enviarOficina', frota: frota, enviar: true, data: getDataAtual() });
-        }, CONFIG.timeoutIframe);
-    }
+        }
+    });
 
     if (frotaInput) frotaInput.value = '';
     if (oficinaChk) oficinaChk.checked = false;
@@ -1613,4 +1654,3 @@ console.log('🚜 Controle de Lavagem — versao final');
 console.log('📌 Web App: ' + CONFIG.webAppUrl);
 console.log('📌 Planilha: ' + CONFIG.editUrl);
 console.log('📅 Data operacional: ' + getDataAtual());
-
