@@ -35,6 +35,12 @@ const TURNO_C_INICIO = 23 * 60 + 46;  // 23:46
 const TURNO_C_FIM = 7 * 60 + 44;      // 07:44 (madrugada)
 const GRUPO_OFICINA = 'OFICINA';
 
+// Frente "de exibicao": mostra OFICINA quando a colhedora esta la, mas
+// nunca mexe em r.frente (que continua sendo sempre a frente real).
+function frenteExibicao(r) {
+    return r.oficina ? GRUPO_OFICINA : (r.frente || GRUPO_OFICINA);
+}
+
 // ============================================================
 //  ROSTER_SEED (elenco padrao de colhedoras por frente)
 // ============================================================
@@ -145,7 +151,6 @@ function normalizarRegistro(r, idx) {
         status: r.status || 'NAOOK',
         oficina: !!r.oficina,
         desativada: !!r.desativada,
-        frenteOriginal: r.frenteOriginal || null,
         updatedAt: r.updatedAt || new Date().toISOString()
     };
 }
@@ -555,14 +560,15 @@ function renderizarTabela() {
         }
         const onclick = (r.oficina || r.desativada) ? '' : 'onclick="alternarStatus(' + r.id + ')"';
 
+        const grupoAtual = frenteExibicao(r);
         const anterior = idx > 0 ? dados[idx - 1] : null;
-        const grupoClass = (!anterior || anterior.frente !== r.frente)
-            ? (r.frente === GRUPO_OFICINA ? 'grupo-oficina' : 'grupo-frente')
+        const grupoClass = (!anterior || frenteExibicao(anterior) !== grupoAtual)
+            ? (grupoAtual === GRUPO_OFICINA ? 'grupo-oficina' : 'grupo-frente')
             : '';
 
         html += '<tr class="' + (r.oficina ? 'linha-oficina' : '') + ' ' +
             (r.desativada ? 'linha-desativada' : '') + ' ' + grupoClass + '">' +
-            '<td class="col-frente" title="' + escapeAttr(r.frente) + '">' + escapeHtml(r.frente) + '</td>' +
+            '<td class="col-frente" title="' + escapeAttr(grupoAtual) + '">' + escapeHtml(grupoAtual) + '</td>' +
             '<td class="col-frota">' +
             '<span class="frota-chip ' + (r.oficina ? 'oficina' : '') + ' ' + (r.desativada ? 'desativada' : '') + '">' +
             escapeHtml(r.frota) +
@@ -588,7 +594,7 @@ function renderizarFiltrosFrente() {
     const select = document.getElementById('filterFrente');
     if (!select) return;
     const atual = select.value;
-    const frentes = Array.from(new Set(registros.map(function (r) { return r.frente; }))).sort();
+    const frentes = Array.from(new Set(registros.map(frenteExibicao))).sort();
     let html = '<option value="all">Todas</option>';
     frentes.forEach(function (f) {
         html += '<option value="' + escapeAttr(f) + '">' + escapeHtml(f) + '</option>';
@@ -641,12 +647,12 @@ function getRegistrosFiltrados() {
 
     if (f.turno !== 'all') resultado = resultado.filter(function (r) { return r.turno === f.turno; });
     if (f.status !== 'all') resultado = resultado.filter(function (r) { return r.status === f.status && !r.oficina; });
-    if (f.frente !== 'all') resultado = resultado.filter(function (r) { return r.frente === f.frente; });
+    if (f.frente !== 'all') resultado = resultado.filter(function (r) { return frenteExibicao(r) === f.frente; });
     if (busca) resultado = resultado.filter(function (r) {
         return r.frota.toLowerCase().indexOf(busca) !== -1 || r.frente.toLowerCase().indexOf(busca) !== -1;
     });
 
-    resultado.sort(function (a, b) { return a.frente.localeCompare(b.frente); });
+    resultado.sort(function (a, b) { return frenteExibicao(a).localeCompare(frenteExibicao(b)); });
     return resultado;
 }
 
@@ -805,7 +811,7 @@ function abrirEdicaoFrota(id) {
 
     edicaoFrotaId = id;
     setTexto('modalFrotaNumero', r.frota);
-    setTexto('modalFrotaFrenteAtual', r.frente);
+    setTexto('modalFrotaFrenteAtual', frenteExibicao(r));
 
     const frenteInput = document.getElementById('modalFrotaFrente');
     if (frenteInput) frenteInput.value = r.frente;
@@ -1003,7 +1009,7 @@ function carregarListaColhedoras() {
     }
 
     tbody.innerHTML = ordenados.map(function (r) {
-        const frente = escapeHtml(r.oficina ? GRUPO_OFICINA : (r.frente || GRUPO_OFICINA));
+        const frente = escapeHtml(frenteExibicao(r));
         return '<tr>' +
             '<td>' + escapeHtml(r.frota) + '</td>' +
             '<td>' + frente + '</td>' +
@@ -1038,14 +1044,17 @@ function criarNovaColhedora() {
 
     if (!oficina && !frente) { mostrarToast('Selecione uma frente ou ative a oficina', 'error'); return; }
 
-    const frenteFinal = oficina ? GRUPO_OFICINA : (frente || 'FRENTE - 08');
+    // "frente" armazenada eh sempre a frente real (nunca 'OFICINA') — a
+    // exibicao como OFICINA e feita a partir da flag r.oficina, nunca
+    // sobrescrevendo a frente de origem da colhedora.
+    const frenteReal = frente || 'FRENTE - 08';
 
     const existente = registrosOriginais.find(function (r) { return r.frota === frota; });
     if (existente) { mostrarToast('Colhedora já existe', 'error'); return; }
 
     registrosOriginais.push({
         id: Date.now(),
-        frente: frenteFinal,
+        frente: frenteReal,
         frota: frota,
         turno: null,
         data: getDataAtual(),
@@ -1061,11 +1070,10 @@ function criarNovaColhedora() {
     carregarListaColhedoras();
     atualizarSelectFrentesColhedoras();
 
-    const frentePlanilha = frente || 'FRENTE - 08';
     // 'enviarOficina' so pode rodar DEPOIS que a linha da colhedora existir na
     // planilha; por isso agora ele so dispara dentro do callback de sucesso do
     // 'adicionar', em vez de em paralelo (o que causava falha silenciosa).
-    enviarAcao({ acao: 'adicionar', frente: frentePlanilha, frota: frota, data: getDataAtual() }, function (resultado) {
+    enviarAcao({ acao: 'adicionar', frente: frenteReal, frota: frota, data: getDataAtual() }, function (resultado) {
         if (!resultado || !resultado.sucesso) return; // erro ja mostrado pelo enviarAcao
         if (oficina) {
             enviarAcao({ acao: 'enviarOficina', frota: frota, enviar: true, data: getDataAtual() });
@@ -1083,7 +1091,7 @@ function editarColhedoraModal(id) {
 
     edicaoFrotaId = id;
     setTexto('modalFrotaNumero', r.frota);
-    setTexto('modalFrotaFrenteAtual', r.frente);
+    setTexto('modalFrotaFrenteAtual', frenteExibicao(r));
 
     const frenteInput = document.getElementById('modalFrotaFrente');
     if (frenteInput) frenteInput.value = r.frente;
@@ -1123,43 +1131,39 @@ function fecharModalFrota() {
     edicaoFrotaId = null;
 }
 
+// ------------------------------------------------------------
+// IMPORTANTE: "frente" (r.frente) SEMPRE representa a frente REAL da
+// colhedora — nunca deve ser sobrescrita com o literal 'OFICINA'.
+// "oficina" e "desativada" sao flags independentes, aplicadas por cima
+// da frente real (tanto na tela quanto na planilha, ver enviarOficina /
+// desativarFrente no Apps Script, que gravam so na coluna do dia, sem
+// tocar na coluna da frente). O bug antigo fazia frente = GRUPO_OFICINA
+// e mandava isso como novaFrente no moverFrente, o que APAGAVA de vez a
+// frente real da colhedora na planilha (coluna A) — por isso a colhedora
+// "sumia" da frente certa e travava ao tentar voltar da oficina.
+// ------------------------------------------------------------
 function salvarEdicaoFrota() {
     if (edicaoFrotaId === null) return;
     const r = registros.find(function (x) { return x.id === edicaoFrotaId; })
         || registrosOriginais.find(function (x) { return x.id === edicaoFrotaId; });
     if (!r) return;
 
-    let frente = (document.getElementById('modalFrotaFrente').value || '').trim();
-    if (!frente) { mostrarToast('Informe a frente', 'error'); return; }
-
-    const oficina = document.getElementById('modalFrotaOficina').checked;
-    const desativada = document.getElementById('modalFrotaDesativar').checked;
-
     const rOrig = registrosOriginais.find(function (x) { return x.id === edicaoFrotaId; });
     const frenteAnterior = rOrig ? rOrig.frente : r.frente;
     const oficinaAnterior = rOrig ? rOrig.oficina : r.oficina;
     const desativadaAnterior = rOrig ? rOrig.desativada : r.desativada;
 
-    if (oficina) {
-        frente = GRUPO_OFICINA;
-    } else if (frenteAnterior === GRUPO_OFICINA && !oficina) {
-        const voltarOrigem = confirm('Deseja voltar para a frente original?');
-        if (voltarOrigem) {
-            frente = rOrig.frenteOriginal || r.frente;
-        } else {
-            const frentesAtivas = Array.from(new Set(registrosOriginais
-                .filter(function (x) { return x.frente !== GRUPO_OFICINA; })
-                .map(function (x) { return x.frente; }))).sort();
-            if (frentesAtivas.length === 0) {
-                mostrarToast('Nenhuma frente ativa disponivel', 'error');
-                return;
-            }
-            frente = prompt('Digite a nova frente (ex: FRENTE - 08):\nOpcoes: ' + frentesAtivas.join(', ')) || frentesAtivas[0];
-            if (frentesAtivas.indexOf(frente) === -1) {
-                mostrarToast('Frente invalida', 'error');
-                return;
-            }
-        }
+    const oficina = document.getElementById('modalFrotaOficina').checked;
+    const desativada = document.getElementById('modalFrotaDesativar').checked;
+    const frenteDigitada = (document.getElementById('modalFrotaFrente').value || '').trim();
+
+    // Enquanto oficina estiver marcada, o campo de texto da frente eh
+    // ignorado para nao sobrescrever a frente real — ela so muda de fato
+    // quando a colhedora estiver fora da oficina.
+    let frente = frenteAnterior;
+    if (!oficina) {
+        if (!frenteDigitada) { mostrarToast('Informe a frente', 'error'); return; }
+        frente = frenteDigitada;
     }
 
     r.frente = frente;
@@ -1169,8 +1173,6 @@ function salvarEdicaoFrota() {
         rOrig.frente = frente;
         rOrig.oficina = oficina;
         rOrig.desativada = desativada;
-        if (oficina && !rOrig.frenteOriginal) rOrig.frenteOriginal = frenteAnterior;
-        if (!oficina && rOrig.frenteOriginal) delete rOrig.frenteOriginal;
     }
 
     salvarLocal();
