@@ -70,7 +70,12 @@ let toastTimeout = null;      // controle do toast
 function isValidFrente(frente) {
     if (!frente || typeof frente !== 'string') return false;
     const t = frente.trim();
-    return t.length >= 5 && t.toUpperCase().includes('FRENTE');
+    // Antes exigia que o texto contivesse "FRENTE", o que descartava por
+    // completo (silenciosamente) qualquer colhedora cuja coluna de frente
+    // tivesse virado 'OFICINA' por engano (ex: corrupcao antiga de dados) —
+    // a colhedora simplesmente sumia da tela sem nenhum aviso. Agora so
+    // exige um texto minimamente valido, incluindo o proprio 'OFICINA'.
+    return t.length >= 2;
 }
 
 function isValidFrota(frota) {
