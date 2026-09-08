@@ -9,7 +9,7 @@
 // ============================================================
 const CONFIG = {
     // URL publicada do Web App do Google Apps Script
-    webAppUrl: 'https://script.google.com/macros/s/AKfycbx-zKQxjSLlka1b5C2uFf6MegIw7UdGnscbN9dtI9FDhN3goHhEexJmc1MACsPxLUW3ug/exec',
+    webAppUrl: 'https://script.google.com/macros/s/AKfycbwlo9o-7me-ExRJD65gVEEmLY0dJw2xhOut5AP-Y8uNj8U5KIdqQEoNX_QlxeqLFaU06A/exec',
     // Planilha de apoio (apenas para referencia do usuario)
     editUrl: 'https://docs.google.com/spreadsheets/d/16neBQx7o74lyVqqbZxfz9twHJnzj-slDETEIFQPUqtI/edit?usp=sharing',
     // Chaves de armazenamento local
@@ -1032,6 +1032,10 @@ function atualizarSelectFrentesColhedoras() {
 }
 
 function criarNovaColhedora() {
+    if (carregando) {
+        mostrarToast('Aguarde o carregamento da planilha antes de adicionar', 'error');
+        return;
+    }
     const frotaInput = document.getElementById('novaColhedoraFrota');
     const frenteSelect = document.getElementById('novaColhedoraFrente');
     const oficinaChk = document.getElementById('novaColhedoraOficina');
@@ -1050,10 +1054,11 @@ function criarNovaColhedora() {
     const frenteReal = frente || 'FRENTE - 08';
 
     const existente = registrosOriginais.find(function (r) { return r.frota === frota; });
-    if (existente) { mostrarToast('Colhedora já existe', 'error'); return; }
+    if (existente) { mostrarToast('Colhedora já existe — use o editar (📝) para alterá-la', 'error'); return; }
 
+    const novoId = Date.now();
     registrosOriginais.push({
-        id: Date.now(),
+        id: novoId,
         frente: frenteReal,
         frota: frota,
         turno: null,
@@ -1073,8 +1078,19 @@ function criarNovaColhedora() {
     // 'enviarOficina' so pode rodar DEPOIS que a linha da colhedora existir na
     // planilha; por isso agora ele so dispara dentro do callback de sucesso do
     // 'adicionar', em vez de em paralelo (o que causava falha silenciosa).
+    // Se o 'adicionar' falhar (ex: frota ja existe na planilha, cadastrada por
+    // outro dispositivo/aba), desfaz o registro otimista da tela — sem isso
+    // ficava um registro "fantasma" que so sumia no proximo F5.
     enviarAcao({ acao: 'adicionar', frente: frenteReal, frota: frota, data: getDataAtual() }, function (resultado) {
-        if (!resultado || !resultado.sucesso) return; // erro ja mostrado pelo enviarAcao
+        if (!resultado || !resultado.sucesso) {
+            registrosOriginais = registrosOriginais.filter(function (r) { return r.id !== novoId; });
+            salvarLocal();
+            aplicarFiltroDataAtual();
+            renderizarTudo();
+            carregarListaColhedoras();
+            atualizarSelectFrentesColhedoras();
+            return;
+        }
         if (oficina) {
             enviarAcao({ acao: 'enviarOficina', frota: frota, enviar: true, data: getDataAtual() });
         }
