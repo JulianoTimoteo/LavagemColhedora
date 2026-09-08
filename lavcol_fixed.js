@@ -78,10 +78,14 @@ function doGet(e) {
       for (let j = 3; j < linha.length; j++) {
         const valor = String(linha[j] || '').trim().toUpperCase();
         if (!valor) continue;
-        if (valor === 'DESATIVADA') continue;
         const nomeCol = String(dados[0][j] || '').trim();
         const dataCol = converterNomeColunaParaData(nomeCol);
         if (!dataCol) continue;
+        // IMPORTANTE: marcar achouHoje ANTES de qualquer "continue" para essa
+        // data. Antes, celulas 'DESATIVADA' eram puladas sem marcar achouHoje,
+        // entao o bloco abaixo criava um registro NAOOK sintetico por cima —
+        // e a colhedora "desativada" voltava sozinha a ficar ativa a cada F5.
+        if (dataCol === hoje) achouHoje = true;
         const chave = `${frota}|${dataCol}`;
         if (!mapa.has(chave)) {
           mapa.set(chave, {
@@ -91,10 +95,10 @@ function doGet(e) {
             turno: turno || null,
             data: dataCol,
             status: normalizarStatus(valor),
-            oficina: valor === 'OFICINA'
+            oficina: valor === 'OFICINA',
+            desativada: valor === 'DESATIVADA'
           });
         }
-        if (dataCol === hoje) achouHoje = true;
       }
       if (!achouHoje) {
         const chave = `${frota}|${hoje}`;
@@ -106,7 +110,8 @@ function doGet(e) {
             turno: turno || null,
             data: hoje,
             status: 'NAOOK',
-            oficina: false
+            oficina: false,
+            desativada: false
           });
         }
       }
@@ -256,13 +261,18 @@ function normalizarData_(valor) {
 
 function obterAba(ss) {
   const nomes = ['LAVAGEM', 'Planilha1', 'Sheet1'];
+  let sheet = null;
   for (const nome of nomes) {
-    const sheet = ss.getSheetByName(nome);
-    if (sheet) return sheet;
+    sheet = ss.getSheetByName(nome);
+    if (sheet) break;
   }
-  const sheets = ss.getSheets();
-  if (sheets && sheets.length > 0) return sheets[0];
-  const sheet = ss.insertSheet('LAVAGEM');
+  if (!sheet) {
+    const sheets = ss.getSheets();
+    sheet = (sheets && sheets.length > 0) ? sheets[0] : ss.insertSheet('LAVAGEM');
+  }
+  // Auto-normaliza a estrutura de colunas (coluna TURNO na posicao certa)
+  // toda vez que a aba e obtida, tanto em leituras quanto em gravacoes.
+  garantirColunaTurno(sheet);
   return sheet;
 }
 
@@ -368,9 +378,21 @@ function encontrarLinhaFrota(sheet, frota) {
   return -1;
 }
 
+// Garante que a coluna C sempre seja TURNO e as datas comecem sempre na
+// coluna D — todo o resto do script (leitura em doGet, encontrarColunaData,
+// garantirColunaData etc.) assume esse layout fixo. Sem essa garantia, uma
+// planilha sem a coluna TURNO na posicao certa faz o doGet ler a primeira
+// coluna de data como se fosse "turno" e ignorar essa data inteira nas
+// leituras — dando a impressao de que gravacoes "somem".
+// So mexe na planilha se ela ja estiver inicializada (cabecalho A1 = FRENTES),
+// para nao criar colunas em uma aba vazia/nova por engano.
 function garantirColunaTurno(sheet) {
   if (!sheet) return 2;
-  const cabecalho = sheet.getDataRange().getValues()[0];
+  const ultimaLinha = sheet.getLastRow();
+  const ultimaColuna = sheet.getLastColumn();
+  if (ultimaLinha < 1 || ultimaColuna < 2) return 2;
+  const cabecalho = sheet.getRange(1, 1, 1, ultimaColuna).getValues()[0];
+  if (String(cabecalho[0] || '').trim().toUpperCase() !== 'FRENTES') return 2;
   if (cabecalho.length >= 3 && String(cabecalho[2] || '').trim().toUpperCase() === 'TURNO') {
     return 3;
   }
@@ -608,7 +630,9 @@ function criarEstruturaInicial() {
       sheet = ss.insertSheet('LAVAGEM');
     }
 
-    const cabecalho = ['FRENTES', 'FROTAS'];
+    // TURNO sempre na coluna C — mesmo layout que garantirColunaTurno espera
+    // em todo o resto do script (datas comecam sempre na coluna D).
+    const cabecalho = ['FRENTES', 'FROTAS', 'TURNO'];
     const hoje = new Date();
     const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
     
@@ -644,8 +668,8 @@ function criarEstruturaInicial() {
 
     for (const [frente, frota] of frotas) {
       if (!frotasExistentes.has(frota)) {
-        const linha = [frente, frota];
-        for (let i = 0; i < cabecalho.length - 2; i++) {
+        const linha = [frente, frota, '']; // frente, frota, turno (vazio)
+        for (let i = 0; i < cabecalho.length - 3; i++) {
           linha.push('NAOOK');
         }
         sheet.appendRow(linha);
