@@ -11,30 +11,26 @@ function doGet(e) {
   // SE TIVER 'dados' -> PROCESSAR AÇÃO (via GET)
   // ==========================================================
   if (e && e.parameter && e.parameter.dados) {
+    // Se vier 'callback', responde em JSONP (script tag) para que o front-end
+    // consiga confirmar de verdade se a acao foi salva. Sem 'callback', mantem
+    // o JSON puro por compatibilidade com quem ainda usa fetch/POST.
+    const callbackAcao = e.parameter.callback || null;
     try {
       const dados = JSON.parse(e.parameter.dados);
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       if (!ss) {
-        return ContentService
-          .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Planilha não encontrada' }))
-          .setMimeType(ContentService.MimeType.JSON);
+        return responderAcao_(callbackAcao, { sucesso: false, erro: 'Planilha não encontrada' });
       }
 
       const sheet = obterAba(ss);
       if (!sheet) {
-        return ContentService
-          .createTextOutput(JSON.stringify({ sucesso: false, erro: 'Nenhuma aba encontrada' }))
-          .setMimeType(ContentService.MimeType.JSON);
+        return responderAcao_(callbackAcao, { sucesso: false, erro: 'Nenhuma aba encontrada' });
       }
 
       const resultado = executarAcao(sheet, dados);
-      return ContentService
-        .createTextOutput(JSON.stringify(resultado))
-        .setMimeType(ContentService.MimeType.JSON);
+      return responderAcao_(callbackAcao, resultado);
     } catch (erro) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ sucesso: false, erro: erro.toString() }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return responderAcao_(callbackAcao, { sucesso: false, erro: erro.toString() });
     }
   }
 
@@ -179,6 +175,19 @@ function doPost(e) {
 // ============================================================
 //  HELPERS
 // ============================================================
+// Responde uma acao em JSONP (se houver callback) ou JSON puro (fallback)
+function responderAcao_(callback, objeto) {
+  const json = JSON.stringify(objeto);
+  if (callback) {
+    return ContentService
+      .createTextOutput(`${callback}(${json})`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function converterNomeColunaParaData(nomeCol) {
   if (!nomeCol) return null;
   
